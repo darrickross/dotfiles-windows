@@ -1,0 +1,12 @@
+{
+    "security.workspace.trust.untrustedFiles": "open",
+    "cSpell.userWords": [
+        "Darrick"
+    ],
+    "git.autofetch": true,
+    "diffEditor.ignoreTrimWhitespace": false,
+    "workbench.startupEditor": "none",
+    "git.suggestSmartCommit": false,
+    "git.confirmSync": false,
+    "editor.minimap.enabled": false,
+}
