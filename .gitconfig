@@ -1,0 +1,16 @@
+[filter "lfs"]
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+	clean = git-lfs clean -- %f
+[init]
+	defaultBranch = main
+[user]
+	email = me@darrickross.com
+    name = Darrick Ross
+	signingkey = DF1B93A0B3CDCF394B9D2708108B3A7D41B13305
+[gpg]
+	program = C:\\Program Files (x86)\\GnuPG\\bin\\gpg.exe
+	format = openpgp
+[commit]
+	gpgSign = true
