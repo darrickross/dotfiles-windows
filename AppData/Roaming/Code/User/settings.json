@@ -4,7 +4,7 @@
     ],
     "diffEditor.ignoreTrimWhitespace": false,
     "editor.minimap.enabled": false,
-    "git.autofetch": true,
+    "git.autofetch": false,
     "git.confirmSync": false,
     "git.suggestSmartCommit": false,
     "security.workspace.trust.untrustedFiles": "open",
