@@ -40,6 +40,7 @@
         "editor.insertSpaces": true,
     },
     "notebook.output.scrolling": true,
+    "powershell.integratedConsole.showOnStartup": false,
     "remote.SSH.remotePlatform": {
         "blueripper": "linux",
     },
