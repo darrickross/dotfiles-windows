@@ -2,5 +2,6 @@
     "files.associations": {
         "config": "ssh_config",
         "*.ssh_config": "ssh_config",
+        ".dotfile-ignore": "ignore"
     },
 }
