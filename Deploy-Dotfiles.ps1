@@ -47,6 +47,7 @@ $DestinationFolder = (Resolve-Path $DestinationFolder).Path
 $IgnoredPaths = @()
 $DotfileIgnoreListFileName = ".dotfile-ignore"
 $DotfileIgnoreListFilePath = Join-Path $DotfilesFolder $DotfileIgnoreListFileName
+$ScriptPath = $MyInvocation.MyCommand.Path
 
 
 # ==============================================================================
@@ -82,7 +83,29 @@ function IsValidGitIgnorePath {
 }
 
 
-# Output Dry Run header if in DryRun mode.
+# ==============================================================================
+# Func: Determines if a relative path should be ignored.
+# ==============================================================================
+
+function IsIgnored {
+    param (
+        [string]$RelativePath
+    )
+    foreach ($pattern in $IgnoredPaths) {
+        # Use -like for wildcard matching or direct start comparison.
+        if ($RelativePath -like $pattern -or $RelativePath.StartsWith($pattern)) {
+            return $true
+        }
+    }
+    return $false
+}
+
+
+# ==============================================================================
+# Early Validations
+# ==============================================================================
+
+
 if ($DryRun) {
     Write-Host "==============================================================================="
     Write-Host "==                                  DRY RUN                                  =="
@@ -138,10 +161,10 @@ else {
 Write-Output ""
 
 
-# Determine the full path of the running script.
-$ScriptPath = $MyInvocation.MyCommand.Path
+# ==============================================================================
+# Process .dotfile-ignore
+# ==============================================================================
 
-# Check for the .dotfile-ignore file.
 Write-VerboseCustom "Searching for $DotfileIgnoreListFileName"
 if (Test-Path $DotfileIgnoreListFilePath) {
     Write-VerboseCustom "Found $DotfileIgnoreListFileName"
@@ -158,27 +181,14 @@ if (Test-Path $DotfileIgnoreListFilePath) {
     }
 }
 
-# Helper Function: Determines if a relative path should be ignored.
-function IsIgnored {
-    param (
-        [string]$RelativePath
-    )
-    foreach ($pattern in $IgnoredPaths) {
-        # Use -like for wildcard matching or direct start comparison.
-        if ($RelativePath -like $pattern -or $RelativePath.StartsWith($pattern)) {
-            return $true
-        }
-    }
-    return $false
-}
-
-# Counters for summary
-$CreatedFolderCount = 0
-$CreatedLinkCount = 0
 
 # ==============================================================================
 # Folders
 # ==============================================================================
+
+# Counters for summary
+$CreatedFolderCount = 0
+$CreatedLinkCount = 0
 
 Write-Output ""
 Write-Output "Processing Folders in: $DotfilesFolder"
