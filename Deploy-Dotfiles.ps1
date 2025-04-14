@@ -49,7 +49,10 @@ $DotfileIgnoreListFileName = ".dotfile-ignore"
 $DotfileIgnoreListFilePath = Join-Path $DotfilesFolder $DotfileIgnoreListFileName
 
 
-# Function: Write-VerboseCustom writes messages when VerboseOutput is enabled.
+# ==============================================================================
+# Func: Writes messages when VerboseOutput is enabled.
+# ==============================================================================
+
 function Write-VerboseCustom {
     param ([string]$Message)
     if ($VerboseOutput) {
@@ -58,7 +61,10 @@ function Write-VerboseCustom {
 }
 
 
-# A helper function to validate a .gitignore‑style path.
+# ==============================================================================
+# Func: Validate a .gitignore‑style path.
+# ==============================================================================
+
 function IsValidGitIgnorePath {
     param (
         [string]$Pattern
@@ -97,6 +103,10 @@ Write-VerboseCustom "Matching Folder Structure"
 Write-VerboseCustom "     Dot Folder: $DotfilesFolder"
 Write-VerboseCustom "    Real Folder: $DestinationFolder"
 Write-Output ""
+
+# ==============================================================================
+# Process .dotfile-ignore
+# ==============================================================================
 
 # If not in DryRun mode, ensure admin privileges for symbolic link creation.
 if (-not $DryRun) {
