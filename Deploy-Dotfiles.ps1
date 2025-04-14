@@ -12,7 +12,8 @@
       2. Collects ignore rules (the script file itself is ignored, and if a file named .dotfile-ignore exists, it is parsed similarly to a .gitignore).
       3. Mirrors the folder structure from the dotfiles folder into the destination.
       4. Processes every file (skipping ignored ones and itself): if a corresponding file exists at the destination, it asks (or auto-approves) to move that file back into the dotfiles folder.
-      5. Creates a symbolic link in the destination folder for each file.
+      5. Queues symbolic link creation for each file.
+      6. At the end, if not in DryRun mode, requests admin elevation to create all collected symbolic links.
 
 .PARAMETER DotfilesFolder
     Path to the dotfiles folder. Defaults to the current directory.
@@ -183,7 +184,7 @@ if (Test-Path $DotfileIgnoreListFilePath) {
 
 
 # ==============================================================================
-# Folders
+# Folders Creation
 # ==============================================================================
 
 # Counters for summary
@@ -222,7 +223,7 @@ foreach ($dir in $Directories) {
 
 
 # ==============================================================================
-# Files
+# Files Processing and Queuing Symlink Creation
 # ==============================================================================
 
 Write-Output ""
@@ -270,7 +271,7 @@ foreach ($file in $Files) {
         if ($moveFile) {
             Write-VerboseCustom "+ Moving file $destinationFile to $($file.FullName)"
             if (-not $DryRun) {
-                # Move the existing destination file, which overwrites the file in the dotfiles folder.
+                # Move the existing destination file, overwriting the file in the dotfiles folder.
                 Move-Item -Path $destinationFile -Destination $file.FullName -Force
             }
         }
@@ -280,7 +281,7 @@ foreach ($file in $Files) {
         }
     }
 
-    # Create the symbolic link only if the destination file does not already exist.
+    # Queue the symbolic link creation only if the destination file does not already exist.
     if (Test-Path $destinationFile) {
         Write-Output "Exists:      $destinationFile"
         continue
