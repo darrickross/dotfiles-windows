@@ -300,3 +300,5 @@ else {
     Write-Host "Created $CreatedFolderCount Folders"
     Write-Host "Created $CreatedLinkCount Symbolic Links"
 }
+
+$response = Read-Host "Press Enter to continue..."
