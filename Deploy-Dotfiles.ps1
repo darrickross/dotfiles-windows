@@ -44,6 +44,7 @@ param (
 $DotfilesFolder = (Resolve-Path $DotfilesFolder).Path
 $DestinationFolder = (Resolve-Path $DestinationFolder).Path
 
+
 # Prepare the list of ignore patterns.
 $IgnoredPaths = @()
 $DotfileIgnoreListFileName = ".dotfile-ignore"
@@ -105,7 +106,6 @@ function IsIgnored {
 # ==============================================================================
 # Early Validations
 # ==============================================================================
-
 
 if ($DryRun) {
     Write-Host "==============================================================================="
@@ -219,7 +219,6 @@ foreach ($dir in $Directories) {
         Write-Output "Exists:   $destDir"
     }
 }
-
 
 
 # ==============================================================================
