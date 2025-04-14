@@ -197,15 +197,12 @@ Write-Output ""
 $Directories = Get-ChildItem -Path $DotfilesFolder -Directory -Recurse | Sort-Object { $_.FullName }
 
 foreach ($dir in $Directories) {
-    # Write-Output "$dir"
-
     # Get the relative path by removing the dotfiles folder root portion.
     $relativeDir = $dir.FullName.Substring($DotfilesFolder.Length).TrimStart('\', '/')
 
     # Calculate Destination Dir
     $destDir = Join-Path $DestinationFolder $relativeDir
 
-    # Write-Output "$relativeDir"
     if (IsIgnored $relativeDir) {
         Write-Output "Ignored:  $destDir"
         continue
