@@ -5,7 +5,12 @@
         ".dotfile-ignore": "ignore"
     },
     "cSpell.words": [
+        "autofetch",
+        "blueripper",
+        "Cascadia",
+        "Meslo",
         "openpgp",
+        "scrollback",
         "signingkey"
     ],
 }
