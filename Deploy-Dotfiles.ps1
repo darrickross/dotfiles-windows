@@ -58,9 +58,9 @@ function Test-Admin {
 }
 
 # Prepare the list of ignore patterns.
-$IgnoredPaths = @()
 $DotfileIgnoreListFileName = ".dotfile-ignore"
 $DotfileIgnoreListFilePath = Join-Path $DotfilesFolder $DotfileIgnoreListFileName
+$IgnoredPaths = @( $DotfileIgnoreListFileName )
 $ScriptPath = $MyInvocation.MyCommand.Path
 
 # ==============================================================================
