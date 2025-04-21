@@ -299,6 +299,7 @@ if ($DryRun) {
     Write-Host "Dry Run Mode Enabled."
     Write-Host "Would have Created $CreatedFolderCount Folders"
     Write-Host "Would have Queued $CreatedLinkCount Symbolic Link Creations"
+    exit 0
 }
 else {
     Write-Host "Created $CreatedFolderCount Folders"
@@ -306,10 +307,27 @@ else {
 }
 
 # ==============================================================================
-# Execute Symlink Commands in Elevated Process Using a Single Combined Command
+# Show the exact list of pending symlinks & prompt for confirmation
 # ==============================================================================
 
-if (-not $DryRun -and $SymlinkCommands.Count -gt 0) {
+if ($SymlinkCommands.Count -gt 0) {
+    Write-Host ""
+    Write-Host "The following symbolic links are queued to be created using Admin:"
+    foreach ($cmd in $SymlinkCommands) {
+        Write-Host "  $cmd"
+    }
+    Write-Host ""
+    # Prompt for Y/N confirmation
+    $response = Read-Host "? Do you want to create these symbolic links (requires admin)? (Y/N)"
+    if ($response -notmatch '^(Y|y)') {
+        Write-Host "Symbolic link creation aborted by user."
+        exit 1
+    }
+
+    # ==============================================================================
+    # Execute Symlink Commands in Elevated Process Using a Single Combined Command
+    # ==============================================================================
+
     # Combine commands into one single string using "&&"
     $combinedCommand = $SymlinkCommands -join " && "
 
@@ -328,5 +346,3 @@ if (-not $DryRun -and $SymlinkCommands.Count -gt 0) {
 
     Write-Host "Symbolic link creation process initiated."
 }
-
-$response = Read-Host "Press Enter to continue..."
