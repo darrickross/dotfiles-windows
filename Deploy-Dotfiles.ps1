@@ -260,8 +260,7 @@ foreach ($file in $Files) {
             Write-VerboseCustom "+ AutoApprove adopting file"
         }
         else {
-            Write-Output "+ File $destinationFile exists."
-            $response = Read-Host "? Do you want to move it to the dotfiles folder? (Y/N)"
+            $response = Read-Host "? Do you want to move this file to the dotfiles folder? (Y/N)"
             if ($response -match '^(Y|y)') {
                 $moveFile = $true
             }
