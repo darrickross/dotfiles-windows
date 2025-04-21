@@ -203,23 +203,23 @@ foreach ($file in $Files) {
     $relativeFile = $file.FullName.Substring($DotfilesFolder.Length).TrimStart('\', '/')
     $destinationFile = Join-Path $DestinationFolder $relativeFile
 
-    if ($file.FullName -eq $ScriptPath) {
-        Write-Output "Skip:        $destinationFile"
-        continue
-    }
-    if (IsIgnored $relativeFile) {
+    # Its this script, or its on the Skip List
+    if ( ($file.FullName -eq $ScriptPath) -or (IsIgnored $relativeFile) ) {
         Write-Output "Ignored:     $destinationFile"
         continue
     }
 
+    # Does the Symbolic Link already exist?
     if (Test-Path $destinationFile) {
         $destItem = Get-Item $destinationFile -Force
         if ( ($destItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -and ($destItem.Target -eq $file.FullName) ) {
             Write-Output "Exists:      $destinationFile"
             continue
         }
+    }
 
-        Write-Output "Adopt?:      $destinationFile"
+    if (Test-Path $destinationFile) {
+        Write-Output "Adopt?:          $destinationFile"
         $moveFile = $false
         if ($AutoApprove) {
             $moveFile = $true
