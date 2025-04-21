@@ -111,6 +111,40 @@ function IsIgnored {
 }
 
 # ==============================================================================
+# Func: Determines if a relative path should be ignored.
+# ==============================================================================
+
+function Write-Path {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Status,
+
+        [int]$Pad = 16,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+
+        [bool]$VerboseOnly = $false,
+
+        [string]$Link_Path
+    )
+
+    if ($VerboseOnly -and -not $VerboseOutput) {
+        return
+    }
+
+    $Status = "${Status}:"
+
+    $PaddedStatus = $Status.PadRight($Pad)
+    Write-Host "${PaddedStatus} $Path"
+
+    if ($Link_Path) {
+        $LinkPadding = ' ' * ($Pad + 1)
+        Write-Host "$LinkPadding-> $Link_Path"
+    }
+}
+
+# ==============================================================================
 # Early Validations
 # ==============================================================================
 
@@ -205,7 +239,7 @@ foreach ($file in $Files) {
 
     # Its this script, or its on the Skip List
     if ( ($file.FullName -eq $ScriptPath) -or (IsIgnored $relativeFile) ) {
-        Write-Output "Ignored:     $destinationFile"
+        Write-Path -Status "Ignored" -Path $destinationFile
         continue
     }
 
@@ -213,7 +247,7 @@ foreach ($file in $Files) {
     if (Test-Path $destinationFile) {
         $destItem = Get-Item $destinationFile -Force
         if ( ($destItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -and ($destItem.Target -eq $file.FullName) ) {
-            Write-Output "Exists:      $destinationFile"
+            Write-Path -Status "Exists" -Path $destinationFile -Link_Path $destItem.Target
             continue
         }
     }
@@ -245,11 +279,12 @@ foreach ($file in $Files) {
     }
 
     if (Test-Path $destinationFile) {
-        Write-Output "Exists:      $destinationFile"
+        Write-Path -Status "Conflict" -Path $destinationFile -Link_Path $destItem.Target
         continue
     }
 
-    Write-Output "Queuing Symlink: $destinationFile -> $($file.FullName)"
+    Write-Path -Status "Queued Symlink" -Path $destinationFile -Link_Path $file.FullName
+
     # Create a command string for this symbolic link. Use double quotes to embed the paths.
     $cmd = "New-Item -ItemType SymbolicLink -Path `"$destinationFile`" -Target `"$($file.FullName)`""
     $SymlinkCommands += $cmd
