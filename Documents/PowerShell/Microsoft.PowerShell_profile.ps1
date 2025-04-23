@@ -11,6 +11,7 @@ catch {
 # ----------------------------------------
 $ModulesToImport = @(
     'Compare-FileHash'
+    'Remove-EmptyFolders'
 )
 
 foreach ($Module in $ModulesToImport) {
