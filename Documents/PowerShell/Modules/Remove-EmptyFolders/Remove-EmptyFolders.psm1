@@ -6,7 +6,10 @@ function Remove-EmptyFolders {
         [string]$Path,
 
         [Parameter()]
-        [switch]$IncludeRoot
+        [switch]$IncludeRoot,
+
+        [Parameter()]
+        [switch]$Silent
     )
 
     begin {
@@ -44,7 +47,9 @@ function Remove-EmptyFolders {
                 if (-not $children) {
                     if ($PSCmdlet.ShouldProcess($dir, 'Remove empty directory')) {
                         Remove-Item -LiteralPath $dir -Force
-                        Write-Verbose "Removed empty directory: $dir"
+                        if (-not $Silent) {
+                            Write-Output "Removing: $dir"
+                        }
                     }
                 }
             }
@@ -62,7 +67,9 @@ function Remove-EmptyFolders {
                 if (-not $rootChildren) {
                     if ($PSCmdlet.ShouldProcess($start, 'Remove empty root directory')) {
                         Remove-Item -LiteralPath $start -Force
-                        Write-Verbose "Removed empty root directory: $start"
+                        if (-not $Silent) {
+                            Write-Output "Removing: $start"
+                        }
                     }
                 }
             }
