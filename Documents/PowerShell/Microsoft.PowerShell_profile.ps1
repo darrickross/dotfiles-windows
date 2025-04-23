@@ -1,5 +1,21 @@
+# ----------------------------------------
+# Modules to try to import on startup
+# ----------------------------------------
+$ModulesToImport = @(
+    'Compare-FileHash'
+)
 
-# Import Compare-FileHash
-if (Get-Module -ListAvailable Compare-FileHash) {
-    Import-Module Compare-FileHash
+foreach ($Module in $ModulesToImport) {
+    if (Get-Module -ListAvailable -Name $Module) {
+        try {
+            Import-Module $Module -ErrorAction Stop
+            Write-Verbose "Imported module '$Module'."
+        }
+        catch {
+            Write-Warning "Failed to import module '$Module': $_"
+        }
+    }
+    else {
+        Write-Verbose "Module '$Module' not found; skipping."
+    }
 }
