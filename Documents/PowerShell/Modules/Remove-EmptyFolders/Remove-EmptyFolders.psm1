@@ -28,8 +28,8 @@ function Remove-EmptyFolders {
     end {
         foreach ($start in $paths) {
             # Get all subdirectories, deepest first
-            $dirs = Get-ChildItem -LiteralPath $start -Directory -Recurse -Force |
-            Sort-Object FullName -Descending
+            $dirs = Get-ChildItem -LiteralPath $start -Directory -Recurse -Force | `
+                Sort-Object FullName -Descending
 
             foreach ($dirInfo in $dirs) {
                 $dir = $dirInfo.FullName
