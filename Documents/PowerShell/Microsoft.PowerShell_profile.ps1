@@ -1,3 +1,11 @@
+# Load Write-Verbose/Write-Warning
+try {
+    Import-Module Microsoft.PowerShell.Utility -ErrorAction Stop
+}
+catch {
+    Write-Host "WARNING: Could not load Microsoft.PowerShell.Utility: $_" -ForegroundColor Yellow
+}
+
 # ----------------------------------------
 # Modules to try to import on startup
 # ----------------------------------------
