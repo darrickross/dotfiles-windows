@@ -10,13 +10,12 @@ function Remove-EmptyFolders {
     )
 
     begin {
-        # collect all valid paths
         $paths = @()
     }
 
     process {
-        if (Test-Path $Path -PathType Container) {
-            $paths += (Resolve-Path $Path).ProviderPath
+        if (Test-Path -LiteralPath $Path -PathType Container) {
+            $paths += (Resolve-Path -LiteralPath $Path).ProviderPath
         }
         else {
             Write-Error "Path '$Path' does not exist or is not a directory."
@@ -26,25 +25,43 @@ function Remove-EmptyFolders {
     end {
         foreach ($start in $paths) {
             # Get all subdirectories, deepest first
-            $dirs = Get-ChildItem -Path $start -Directory -Recurse -Force |
+            $dirs = Get-ChildItem -LiteralPath $start -Directory -Recurse -Force |
             Sort-Object FullName -Descending
 
             foreach ($dirInfo in $dirs) {
                 $dir = $dirInfo.FullName
-                # If directory contains no files or subdirectories...
-                if (-not (Get-ChildItem -Path $dir -Force -ErrorAction SilentlyContinue)) {
+
+                # Try to enumerate; if it fails, skip
+                try {
+                    $children = Get-ChildItem -LiteralPath $dir -Force -ErrorAction Stop
+                }
+                catch {
+                    Write-Warning "Skipping unreadable directory: $dir"
+                    continue
+                }
+
+                # If directory truly has no children, remove it
+                if (-not $children) {
                     if ($PSCmdlet.ShouldProcess($dir, 'Remove empty directory')) {
-                        Remove-Item -Path $dir -Force
+                        Remove-Item -LiteralPath $dir -Force
                         Write-Verbose "Removed empty directory: $dir"
                     }
                 }
             }
 
-            # Optionally remove the root itself if it's empty
+            # Optionally remove the root itself if it's empty and readable
             if ($IncludeRoot) {
-                if (-not (Get-ChildItem -Path $start -Force -ErrorAction SilentlyContinue)) {
+                try {
+                    $rootChildren = Get-ChildItem -LiteralPath $start -Force -ErrorAction Stop
+                }
+                catch {
+                    Write-Warning "Skipping unreadable root directory: $start"
+                    continue
+                }
+
+                if (-not $rootChildren) {
                     if ($PSCmdlet.ShouldProcess($start, 'Remove empty root directory')) {
-                        Remove-Item -Path $start -Force
+                        Remove-Item -LiteralPath $start -Force
                         Write-Verbose "Removed empty root directory: $start"
                     }
                 }
