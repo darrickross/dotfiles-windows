@@ -10,8 +10,10 @@
         "Cascadia",
         "Meslo",
         "openpgp",
+        "pwsh",
         "Scancode",
         "scrollback",
-        "signingkey"
+        "signingkey",
+        "winget"
     ],
 }
