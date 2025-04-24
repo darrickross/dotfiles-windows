@@ -24,21 +24,21 @@ Ensure Git is installed to clone the repository.
 
 Follow these steps to deploy your dotfiles:
 
-1. **Define Your Dotfiles Directory:**  
+1. **Define Your Dotfiles Directory:**
    Decide where your dotfiles repository will reside. For example:
 
    ```ps
    $DotFileDir = "$HOME\projects\dotfiles-windows"
    ```
 
-2. **Clone the Repository:**  
+2. **Clone the Repository:**
    Use Git to clone the repository into your chosen location:
 
    ```ps
    git clone git@github.com:darrickross/dotfiles-windows.git $DotFileDir
    ```
 
-3. **Preview the Deployment Changes:**  
+3. **Preview the Deployment Changes:**
    Navigate into the repository directory and run a dry run to see what changes will be applied:
 
    ```ps
@@ -46,7 +46,7 @@ Follow these steps to deploy your dotfiles:
    pwsh -ExecutionPolicy Bypass -File .\Deploy-Dotfiles.ps1 -DestinationFolder $HOME -DotfilesFolder $DotFileDir -DryRun
    ```
 
-4. **Apply the Dotfiles:**  
+4. **Apply the Dotfiles:**
    Once you’re satisfied with the preview, execute the following command to apply the changes:
 
    ```ps
