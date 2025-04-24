@@ -10,7 +10,7 @@ This repository is my `dotfiles` for the windows systems I use. This standardize
 
 Install PowerShell 7 via [winget](https://docs.microsoft.com/en-us/windows/package-manager/winget/) using the command:
 
-```
+```ps
 winget install --id Microsoft.PowerShell --source winget
 ```
 
