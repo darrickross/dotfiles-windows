@@ -227,7 +227,7 @@ function Sync-PSModules {
         Write-Host "Queued Symlink Fix: $($_.Relative) -> $($_.Expected)"
     }
 
-    if ($QueuedFolders.Count -gt 0 -and $QueuedLinks.Count -gt 0) {
+    if ($QueuedFolders.Count -eq 0 -and $QueuedLinks.Count -eq 0) {
         Write-Host "No Changes Detected"
         return
     }
