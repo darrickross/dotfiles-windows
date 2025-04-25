@@ -219,6 +219,8 @@ function Sync-PSModules {
 
     if ($PSBoundParameters.ContainsKey('WhatIf')) { return }
 
+    if ($QueuedFolders.Count -gt 0 -and $QueuedLinks.Count -gt 0) { return }
+
     # ==============================================================================
     # Apply
     # ==============================================================================
