@@ -270,13 +270,7 @@ function Sync-PSModules {
         }
     }
 
-    # ==============================================================================
-    # Summary
-    # ==============================================================================
-    Write-Section 'Summary'
-    $newFolders = ($QueuedFolders | Where-Object { -not(Test-Path $_) }).Count
-    $newLinks = $QueuedLinks.Count + $ResolveConflicts.Count
-    Write-Host "Created $newFolders folders, $newLinks symbolic links (including fixes)."
+    Write-Host "Complete!"
 }
 
 # Entry
