@@ -241,9 +241,7 @@ function Sync-PSModules {
     # ==============================================================================
     # Approval to Apply Changes
     # ==============================================================================
-
     Write-Host ""
-    # Prompt for Y/N confirmation
     $response = Read-Host "? Do you want to apply these changes (Symbolic links might require admin)? (Y/N)"
     if ($response -notmatch '^(Y|y)') {
         Write-Host "Sync aborted by user."
