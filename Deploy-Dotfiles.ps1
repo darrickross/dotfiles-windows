@@ -124,7 +124,7 @@ function Write-ItemStatus {
     )
     # determine colors and plain text
     switch ($Status) {
-        'Queued' { $bg = 'DarkGreen'; $fg = ''; $text = 'Queued' }
+        'Queued' { $bg = 'DarkGreen'; $fg = 'Black'; $text = 'Queued' }
         'Exists' { $bg = ''; $text = 'Exists' }
         'Conflict' { $bg = 'DarkRed'; $fg = 'White'; $text = 'Conflict' }
         'Ignored' { $bg = 'DarkGray'; $fg = 'DarkYellow'; $text = 'Ignored' }
