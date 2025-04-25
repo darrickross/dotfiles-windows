@@ -215,13 +215,14 @@ function Sync-PSModules {
     # ==============================================================================
     # Show Summary Plan
     # ==============================================================================
-    Write-Section 'Queued Folders'
+    Write-Section 'Queued Items'
     $QueuedFolders | Sort-Object -Unique | ForEach-Object {
         $rel = ".\" + $_.Substring($basePath.Length + 1)
         Write-Host "Queue Folder:  $rel"
     }
-    Write-Section 'Queued Symlinks'
-    $QueuedLinks | ForEach-Object { Write-Host "Queue Symlink: $($_.Relative) -> $($_.Target)" }
+    $QueuedLinks | ForEach-Object {
+        Write-Host "Queue Symlink: $($_.Relative) -> $($_.Target)"
+    }
 
     if ($PSBoundParameters.ContainsKey('WhatIf')) {
         Write-Host ""
