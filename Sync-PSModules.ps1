@@ -246,7 +246,7 @@ function Sync-PSModules {
     # Prompt for Y/N confirmation
     $response = Read-Host "? Do you want to apply these changes (Symbolic links might require admin)? (Y/N)"
     if ($response -notmatch '^(Y|y)') {
-        Write-Host "Symbolic link creation aborted by user."
+        Write-Host "Sync aborted by user."
         exit 1
     }
 
