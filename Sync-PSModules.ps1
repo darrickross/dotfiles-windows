@@ -251,6 +251,7 @@ function Sync-PSModules {
     # ==============================================================================
     # Delete any Resolved Conflicts & Add the New Symlink to QueuedLinks
     # ==============================================================================
+    Write-Section 'Remove Approved to Resolve Conflicts && Add those Links to Queue'
     foreach ($c in $ResolveConflicts) {
         if ($PSCmdlet.ShouldProcess($c.Link, 'Remove bad leftover symlink')) {
             Remove-Item -Path $c.Link -Force
