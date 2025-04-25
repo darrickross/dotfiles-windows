@@ -223,9 +223,16 @@ function Sync-PSModules {
     Write-Section 'Queued Symlinks'
     $QueuedLinks | ForEach-Object { Write-Host "Queue Symlink: $($_.Relative) -> $($_.Target)" }
 
-    if ($PSBoundParameters.ContainsKey('WhatIf')) { return }
+    if ($PSBoundParameters.ContainsKey('WhatIf')) {
+        Write-Host ""
+        Write-Host "Dry Run Enabled, No changes made."
+        return
+    }
 
-    if ($QueuedFolders.Count -gt 0 -and $QueuedLinks.Count -gt 0) { return }
+    if ($QueuedFolders.Count -gt 0 -and $QueuedLinks.Count -gt 0) {
+        Write-Host "No Changes Detected"
+        return
+    }
 
     # ==============================================================================
     # Approval to Apply Changes
