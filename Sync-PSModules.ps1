@@ -307,14 +307,17 @@ function Sync-PSModules {
     if ($QueuedLinks.Count -gt 0 -and -not $canCreate) {
         $commands = $QueuedLinks |
         ForEach-Object { "New-Item -Path `"$($_.Link)`" -ItemType SymbolicLink -Value `"$($_.Target)`" -Force" }
-        $commandString = $commands -join ' && '
+        $commandString = $commands -join '    &&    '
 
-        Write-Host "Unable to create symbolic links under your current permissions." -ForegroundColor Yellow
-        Write-Host "Please run the following as Administrator to provision them:" -ForegroundColor Yellow
+        Write-Host "Unable to create symbolic links under your current user permissions." -ForegroundColor DarkRed
+        Write-Host ""
+        Write-Host "The following command will be run as Administrator to provision them:" -ForegroundColor Yellow
+        Write-Host ""
         Write-Host $commandString
-        $approve = Read-Host "Approve elevation and execution as Admin? (Y/N)"
+        Write-Host ""
+        $approve = Read-Host "Do you want to elevation and execution the above command as Administrator? (Y/N)"
         if ($approve -match '^[Yy]$') {
-            Start-Process PowerShell -Verb RunAs -ArgumentList "-NoProfile -Command $commandString"
+            Start-Process -FilePath pwsh -Verb RunAs -ArgumentList "-NoProfile", "-Command", $commandString
         }
         else {
             Write-Host "Symlink creation canceled by user." -ForegroundColor Yellow
