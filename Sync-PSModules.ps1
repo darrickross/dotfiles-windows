@@ -249,6 +249,20 @@ function Sync-PSModules {
     }
 
     # ==============================================================================
+    # Delete any Resolved Conflicts & Add the New Symlink to QueuedLinks
+    # ==============================================================================
+    foreach ($c in $ResolveConflicts) {
+        if ($PSCmdlet.ShouldProcess($c.Link, 'Remove bad leftover symlink')) {
+            Remove-Item -Path $c.Link -Force
+        }
+        $QueuedLinks += [pscustomobject]@{
+            Link     = $c.Link
+            Target   = $c.Expected
+            Relative = $c.Relative
+        }
+    }
+
+    # ==============================================================================
     # Apply
     # ==============================================================================
     Write-Section 'Applying Changes'
@@ -262,12 +276,6 @@ function Sync-PSModules {
     foreach ($l in $QueuedLinks) {
         if ($PSCmdlet.ShouldProcess($l.Link, 'Create symbolic link')) {
             New-Item -Path $l.Link -ItemType SymbolicLink -Value $l.Target -Force
-        }
-    }
-    foreach ($c in $ResolveConflicts) {
-        if ($PSCmdlet.ShouldProcess($c.Link, 'Resolve conflict')) {
-            Remove-Item -Path $c.Link -Force
-            New-Item -Path $c.Link -ItemType SymbolicLink -Value $c.Expected -Force
         }
     }
 
