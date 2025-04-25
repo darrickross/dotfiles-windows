@@ -111,36 +111,52 @@ function IsIgnored {
 }
 
 # ==============================================================================
-# Func: Determines if a relative path should be ignored.
+# Outputs a status label and path (and optional link target) with consistent formatting
 # ==============================================================================
-
-function Write-Path {
+function Write-ItemStatus {
     param(
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory)]
+        [ValidateSet('Exists', 'Queued', 'Conflict', 'Ignored')]
         [string]$Status,
-
-        [int]$Pad = 16,
-
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory)]
         [string]$Path,
-
-        [bool]$VerboseOnly = $false,
-
-        [string]$Link_Path
+        [string]$DestPath = ''
     )
-
-    if ($VerboseOnly -and -not $VerboseOutput) {
-        return
+    # determine colors and plain text
+    switch ($Status) {
+        'Queued' { $bg = 'DarkGreen'; $fg = ''; $text = 'Queued' }
+        'Exists' { $bg = ''; $text = 'Exists' }
+        'Conflict' { $bg = 'DarkRed'; $fg = 'White'; $text = 'Conflict' }
+        'Ignored' { $bg = 'DarkGray'; $fg = 'DarkYellow'; $text = 'Ignored' }
     }
+    # common padding
+    $maxStatusLen = 8
+    $padLen = $maxStatusLen - $text.Length + 1
+    $padding = ' ' * $padLen
 
-    $Status = "${Status}:"
+    # print status word (colored)…
+    if ($bg) {
+        Write-Host `
+            -NoNewline `
+            -BackgroundColor $bg `
+            -ForegroundColor $fg `
+            $text
+    }
+    else {
+        Write-Host `
+            -NoNewline `
+            $text
+    }
+    # …then uncolored colon and padding
+    Write-Host -NoNewline ':'
+    Write-Host -NoNewline $padding
+    Write-Host " $Path"
 
-    $PaddedStatus = $Status.PadRight($Pad)
-    Write-Host "${PaddedStatus} $Path"
-
-    if ($Link_Path) {
-        $LinkPadding = ' ' * ($Pad + 1)
-        Write-Host "$LinkPadding-> $Link_Path"
+    # If a Target Path was provided print it
+    if ($DestPath) {
+        $padding = ' ' * ($maxStatusLen + 6)
+        Write-Host -NoNewline $padding
+        Write-Host "-> $DestPath"
     }
 }
 
@@ -206,18 +222,24 @@ foreach ($dir in $Directories) {
     $destDir = Join-Path $DestinationFolder $relativeDir
 
     if (IsIgnored $relativeDir) {
-        Write-Output "Ignored:  $destDir"
+        Write-ItemStatus `
+            -Status Ignored `
+            -Path $destDir
         continue
     }
     if (-not (Test-Path $destDir -PathType Container)) {
-        Write-Output "Creating: $destDir"
+        Write-ItemStatus `
+            -Status Queued `
+            -Path $destDir
         if (-not $DryRun) {
             New-Item -ItemType Directory -Path $destDir | Out-Null
         }
         $CreatedFolderCount++
     }
     else {
-        Write-Output "Exists:   $destDir"
+        Write-ItemStatus `
+            -Status Exists `
+            -Path $destDir
     }
 }
 
@@ -239,7 +261,9 @@ foreach ($file in $Files) {
 
     # Its this script, or its on the Skip List
     if ( ($file.FullName -eq $ScriptPath) -or (IsIgnored $relativeFile) ) {
-        Write-Path -Status "Ignored" -Path $destinationFile
+        Write-ItemStatus `
+            -Status Ignored `
+            -Path $destinationFile
         continue
     }
 
@@ -247,7 +271,10 @@ foreach ($file in $Files) {
     if (Test-Path $destinationFile) {
         $destItem = Get-Item $destinationFile -Force
         if ( ($destItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -and ($destItem.Target -eq $file.FullName) ) {
-            Write-Path -Status "Exists" -Path $destinationFile -Link_Path $destItem.Target
+            Write-ItemStatus `
+                -Status Exists `
+                -Path $destinationFile `
+                -DestPath $destItem.Target
             continue
         }
     }
@@ -278,11 +305,16 @@ foreach ($file in $Files) {
     }
 
     if (Test-Path $destinationFile) {
-        Write-Path -Status "Conflict" -Path $destinationFile -Link_Path $destItem.Target
+        Write-ItemStatus `
+            -Status Conflict `
+            -Path $destinationFile `
+            -DestPath $destItem.Target
         continue
     }
 
-    Write-Path -Status "Queued Symlink" -Path $destinationFile -Link_Path $file.FullName
+    Write-ItemStatus -Status Queued `
+        -Path $destinationFile `
+        -DestPath $file.FullName
 
     # Create a command string for this symbolic link. Use double quotes to embed the paths.
     $cmd = "New-Item -ItemType SymbolicLink -Path `"$destinationFile`" -Target `"$($file.FullName)`""
