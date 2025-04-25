@@ -207,7 +207,7 @@ function Sync-PSModules {
     }
 
     # ==============================================================================
-    # Show queued actions
+    # Show Summary Plan
     # ==============================================================================
     Write-Section 'Queued Folders'
     $QueuedFolders | Sort-Object -Unique | ForEach-Object {
@@ -220,6 +220,18 @@ function Sync-PSModules {
     if ($PSBoundParameters.ContainsKey('WhatIf')) { return }
 
     if ($QueuedFolders.Count -gt 0 -and $QueuedLinks.Count -gt 0) { return }
+
+    # ==============================================================================
+    # Approval to Apply Changes
+    # ==============================================================================
+
+    Write-Host ""
+    # Prompt for Y/N confirmation
+    $response = Read-Host "? Do you want to apply these changes (Symbolic links might require admin)? (Y/N)"
+    if ($response -notmatch '^(Y|y)') {
+        Write-Host "Symbolic link creation aborted by user."
+        exit 1
+    }
 
     # ==============================================================================
     # Apply
