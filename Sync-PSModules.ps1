@@ -267,6 +267,7 @@ function Sync-PSModules {
     Write-Section 'Remove Approved to Resolve Conflicts && Add those Links to Queue'
     foreach ($c in $ResolveConflicts) {
         if ($PSCmdlet.ShouldProcess($c.Link, 'Remove bad leftover symlink')) {
+            Write-Host "Deleting Conflicting Link: $c.Link"
             Remove-Item -Path $c.Link -Force
         }
         $QueuedLinks += [pscustomobject]@{
@@ -274,6 +275,51 @@ function Sync-PSModules {
             Target   = $c.Expected
             Relative = $c.Relative
         }
+    }
+    Write-Host "Done"
+
+    # ==============================================================================
+    # Check if User can Create Symlinks by trial in TEMP
+    # ==============================================================================
+    Write-Section "Check if Current User can Create Symbolic Links"
+
+    $canCreate = $true
+    $tmpTarget = Join-Path $env:TEMP 'symlink_test_target.txt'
+    $tmpLink = Join-Path $env:TEMP ("symlink_test_{0}.lnk" -f [guid]::NewGuid())
+    # create a dummy target file
+    "test" | Out-File $tmpTarget -Force
+
+    try {
+        # attempt to make a link
+        New-Item -Path $tmpLink -ItemType SymbolicLink -Value $tmpTarget -Force -ErrorAction Stop | Out-Null
+    }
+    catch {
+        $canCreate = $false
+    }
+
+    # clean up
+    if (Test-Path $tmpLink) { Remove-Item $tmpLink   -Force }
+    if (Test-Path $tmpTarget) { Remove-Item $tmpTarget -Force }
+
+    # ==============================================================================
+    # If Current User Can't Create Symlinks, Build, Request Admin, Then Apply Admin
+    # ==============================================================================
+    if ($QueuedLinks.Count -gt 0 -and -not $canCreate) {
+        $commands = $QueuedLinks |
+        ForEach-Object { "New-Item -Path `"$($_.Link)`" -ItemType SymbolicLink -Value `"$($_.Target)`" -Force" }
+        $commandString = $commands -join ' && '
+
+        Write-Host "Unable to create symbolic links under your current permissions." -ForegroundColor Yellow
+        Write-Host "Please run the following as Administrator to provision them:" -ForegroundColor Yellow
+        Write-Host $commandString
+        $approve = Read-Host "Approve elevation and execution as Admin? (Y/N)"
+        if ($approve -match '^[Yy]$') {
+            Start-Process PowerShell -Verb RunAs -ArgumentList "-NoProfile -Command $commandString"
+        }
+        else {
+            Write-Host "Symlink creation canceled by user." -ForegroundColor Yellow
+        }
+        return
     }
 
     # ==============================================================================
