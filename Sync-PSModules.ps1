@@ -29,9 +29,9 @@ function Write-ItemStatus {
     )
     # determine colors and plain text
     switch ($Status) {
-        'Queued' { $bg = 'Green'; $text = 'Queued' }
+        'Queued' { $bg = 'DarkGreen'; $fg = 'Black'; $text = 'Queued' }
         'Exists' { $bg = ''; $text = 'Exists' }
-        'Conflict' { $bg = 'Red'; $text = 'Conflict' }
+        'Conflict' { $bg = 'DarkRed'; $fg = 'White'; $text = 'Conflict' }
     }
     # common padding
     $maxStatusLen = 8
@@ -40,10 +40,16 @@ function Write-ItemStatus {
 
     # print status word (colored)…
     if ($bg) {
-        Write-Host -NoNewline -BackgroundColor $bg $text
+        Write-Host `
+            -NoNewline `
+            -BackgroundColor $bg `
+            -ForegroundColor $fg `
+            $text
     }
     else {
-        Write-Host -NoNewline $text
+        Write-Host `
+            -NoNewline `
+            $text
     }
     # …then uncolored colon and padding
     Write-Host -NoNewline ':'
