@@ -249,6 +249,19 @@ function Sync-PSModules {
     }
 
     # ==============================================================================
+    # Create new folders
+    # ==============================================================================
+
+    Write-Section 'Create New Folders'
+    foreach ($f in $QueuedFolders | Sort-Object -Unique) {
+        if (-not (Test-Path $f)) {
+            if ($PSCmdlet.ShouldProcess($f, 'Create folder')) {
+                New-Item -Path $f -ItemType Directory -Force
+            }
+        }
+    }
+
+    # ==============================================================================
     # Delete any Resolved Conflicts & Add the New Symlink to QueuedLinks
     # ==============================================================================
     Write-Section 'Remove Approved to Resolve Conflicts && Add those Links to Queue'
@@ -264,16 +277,9 @@ function Sync-PSModules {
     }
 
     # ==============================================================================
-    # Apply
+    # Apply Symlinks as Current User
     # ==============================================================================
-    Write-Section 'Applying Changes'
-    foreach ($f in $QueuedFolders | Sort-Object -Unique) {
-        if (-not (Test-Path $f)) {
-            if ($PSCmdlet.ShouldProcess($f, 'Create folder')) {
-                New-Item -Path $f -ItemType Directory -Force
-            }
-        }
-    }
+    Write-Sections 'Create Queued Symbolic Links as Current User'
     foreach ($l in $QueuedLinks) {
         if ($PSCmdlet.ShouldProcess($l.Link, 'Create symbolic link')) {
             New-Item -Path $l.Link -ItemType SymbolicLink -Value $l.Target -Force
