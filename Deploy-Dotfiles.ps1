@@ -9,99 +9,71 @@
 
     It:
       1. Validates that both folders exist.
-      2. Collects ignore rules (the script file itself is ignored, and if a file named .dotfile-ignore exists, it is parsed similarly to a .gitignore).
-      3. Mirrors the folder structure from the dotfiles folder into the destination.
-      4. Processes every file (skipping ignored ones and itself): if a corresponding file exists at the destination, it asks (or auto-approves) to move that file back into the dotfiles folder.
-      5. Queues symbolic link creation for each file.
-      6. At the end, if not in DryRun mode, it ensures that the current PowerShell version is 7 or later and then combines all symbolic link commands into a single chain using "&&". If not elevated, it launches an elevated process to execute the chain.
-
+      2. Collects ignore rules (.dotfile-ignore + script itself).
+      3. Scans and queues all new folders to create.
+      4. Scans and queues all symlinks to create, tracking conflicts separately.
+      5. Shows a “plan” summary of folders, links, and conflicts.
+      6. Prompts for confirmation, then applies all changes (honoring -DryRun and -WhatIf).
 .PARAMETER DotfilesFolder
     Path to the dotfiles folder. Defaults to the current directory.
-
 .PARAMETER DestinationFolder
     The destination directory where symlinks will be created. Defaults to $env:USERPROFILE.
-
-.PARAMETER DryRun
-    If set, no real changes are made.
-
+.PARAMETER WhatIf
+    If set, no real changes are made (uses -WhatIf).
 .PARAMETER VerboseOutput
     If set, additional informational output is shown.
-
 .PARAMETER AutoApprove
     If set, existing destination files are automatically moved without prompting.
 #>
 
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true)]
 param (
     [string]$DotfilesFolder = (Get-Location).Path,
     [string]$DestinationFolder = $env:USERPROFILE,
-    [switch]$DryRun,
     [switch]$VerboseOutput,
     [switch]$AutoApprove
 )
 
-# Ensure the PowerShell version is 7 or later for "&&" support.
-if ($PSVersionTable.PSVersion.Major -lt 7) {
-    Write-Error "This script requires PowerShell 7 or later for the symbolic link command chaining. Please upgrade and try again."
-    exit 1
-}
-
-# Convert to full paths to ensure proper substring operations.
-$DotfilesFolder = (Resolve-Path $DotfilesFolder).Path
-$DestinationFolder = (Resolve-Path $DestinationFolder).Path
-
-# Define a helper function to check for admin privileges.
-function Test-Admin {
-    $currentUser = [Security.Principal.WindowsIdentity]::GetCurrent()
-    $principal = New-Object Security.Principal.WindowsPrincipal($currentUser)
-    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-}
-
-# Prepare the list of ignore patterns.
-$DotfileIgnoreListFileName = ".dotfile-ignore"
-$DotfileIgnoreListFilePath = Join-Path $DotfilesFolder $DotfileIgnoreListFileName
-$IgnoredPaths = @( $DotfileIgnoreListFileName )
-$ScriptPath = $MyInvocation.MyCommand.Path
-
 # ==============================================================================
-# Func: Writes messages when VerboseOutput is enabled.
+# Helper Functions
 # ==============================================================================
+
+function Test-CanUserCreateSymbolicLink {
+    $canCreate = $true
+    $tmpTarget = Join-Path $env:TEMP 'symlink_test_target.txt'
+    $tmpLink = Join-Path $env:TEMP ("symlink_test_{0}.lnk" -f [guid]::NewGuid())
+    # create a dummy target file
+    "test" | Out-File $tmpTarget -Force
+
+    try {
+        # attempt to make a link
+        New-Item -Path $tmpLink -ItemType SymbolicLink -Value $tmpTarget -Force -ErrorAction Stop | Out-Null
+    }
+    catch {
+        $canCreate = $false
+    }
+
+    # clean up
+    if (Test-Path $tmpLink) { Remove-Item $tmpLink -Force }
+    if (Test-Path $tmpTarget) { Remove-Item $tmpTarget -Force }
+
+    return $canCreate
+}
 
 function Write-VerboseCustom {
     param ([string]$Message)
-    if ($VerboseOutput) {
-        Write-Host "$Message"
-    }
+    if ($VerboseOutput) { Write-Host $Message }
 }
-
-# ==============================================================================
-# Func: Validate a .gitignore‑style path.
-# ==============================================================================
 
 function IsValidGitIgnorePath {
-    param (
-        [string]$Pattern
-    )
-    $trimmedPattern = $Pattern.Trim()
-    # Reject empty strings and any that contain ':' (to avoid drive letters).
-    if ([string]::IsNullOrEmpty($trimmedPattern) -or $trimmedPattern.Contains(":")) {
-        return $false
-    }
-    # Allow an optional '!' negation at the beginning, then only allow alphanumerics, underscore, dash, dot, asterisk, slash.
-    if ($trimmedPattern -match '^(?:!?)[\w\-\.\*\/]+\/?$') {
-        return $true
-    }
-    return $false
+    param ([string]$Pattern)
+    $p = $Pattern.Trim()
+    if ([string]::IsNullOrEmpty($p) -or $p.Contains(":")) { return $false }
+    return ($p -match '^(?:!?)[\w\-\.\*\/]+\/?$')
 }
 
-# ==============================================================================
-# Func: Determines if a relative path should be ignored.
-# ==============================================================================
-
 function IsIgnored {
-    param (
-        [string]$RelativePath
-    )
+    param ([string]$RelativePath)
     foreach ($pattern in $IgnoredPaths) {
         if ($RelativePath -like $pattern -or $RelativePath.StartsWith($pattern)) {
             return $true
@@ -110,13 +82,23 @@ function IsIgnored {
     return $false
 }
 
-# ==============================================================================
-# Outputs a status label and path (and optional link target) with consistent formatting
-# ==============================================================================
 function Write-ItemStatus {
     param(
         [Parameter(Mandatory)]
-        [ValidateSet('Exists', 'Queued', 'Conflict', 'Ignored')]
+        [ValidateSet(
+            'Added',
+            'Adopt',
+            'Adopted',
+            'Conflict',
+            'Create',
+            'Created',
+            'Exists',
+            'Ignored',
+            'Invalid',
+            'Queued',
+            'Replace',
+            'Removed'
+        )]
         [string]$Status,
         [Parameter(Mandatory)]
         [string]$Path,
@@ -124,10 +106,18 @@ function Write-ItemStatus {
     )
     # determine colors and plain text
     switch ($Status) {
-        'Queued' { $bg = 'DarkGreen'; $fg = 'Black'; $text = 'Queued' }
-        'Exists' { $bg = ''; $text = 'Exists' }
+        'Added' { $bg = ''; $text = 'Added' }
+        'Adopt' { $bg = ''; $text = 'Adopt' }
+        'Adopted' { $bg = ''; $text = 'Adopted' }
         'Conflict' { $bg = 'DarkRed'; $fg = 'White'; $text = 'Conflict' }
+        'Create' { $bg = ''; $text = 'Create' }
+        'Created' { $bg = ''; $text = 'Created' }
+        'Exists' { $bg = ''; $text = 'Exists' }
         'Ignored' { $bg = 'DarkGray'; $fg = 'DarkYellow'; $text = 'Ignored' }
+        'Invalid' { $bg = 'DarkRed'; $fg = 'White'; $text = 'Invalid' }
+        'Queued' { $bg = 'DarkGreen'; $fg = 'Black'; $text = 'Queued' }
+        'Replace' { $bg = ''; $text = 'Replace' }
+        'Remove' { $bg = ''; $text = 'Remove' }
     }
     # common padding
     $maxStatusLen = 8
@@ -160,221 +150,415 @@ function Write-ItemStatus {
     }
 }
 
-# ==============================================================================
-# Early Validations
-# ==============================================================================
-
-if ($DryRun) {
-    Write-Host "==============================================================================="
-    Write-Host "==                                  DRY RUN                                  =="
-    Write-Host "==============================================================================="
+function Write-Section {
+    param([string]$Title)
+    $sep = '=' * 80
+    Write-Host "`n$sep"
+    Write-Host "==  $Title"
+    Write-Host "$sep`n"
 }
 
-if (-not (Test-Path -Path $DotfilesFolder -PathType Container)) {
-    Write-Error "Dotfiles folder '$DotfilesFolder' does not exist."
-    exit 1
-}
-if (-not (Test-Path -Path $DestinationFolder -PathType Container)) {
-    Write-Error "Destination folder '$DestinationFolder' does not exist."
-    exit 1
-}
-
-Write-VerboseCustom "Matching Folder Structure"
-Write-VerboseCustom "     Dot Folder: $DotfilesFolder"
-Write-VerboseCustom "    Real Folder: $DestinationFolder"
-Write-Output ""
-
 # ==============================================================================
-# Process .dotfile-ignore
+# Prep & Validate
 # ==============================================================================
 
-Write-VerboseCustom "Searching for $DotfileIgnoreListFileName"
-if (Test-Path $DotfileIgnoreListFilePath) {
-    Write-VerboseCustom "Found $DotfileIgnoreListFileName"
-    Write-VerboseCustom "Reading contents $DotfileIgnoreListFileName"
-    $ignoreLines = Get-Content $DotfileIgnoreListFilePath | ForEach-Object { $_.Trim() } |
-    Where-Object { ($_ -ne "") -and (-not $_.StartsWith("#")) }
-    foreach ($line in $ignoreLines) {
-        if (IsValidGitIgnorePath $line) {
-            $IgnoredPaths += $line
-            Write-VerboseCustom "    $line"
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    Throw 'This script requires PowerShell 7+ for command chaining.'
+}
+
+if ($PSBoundParameters.ContainsKey('WhatIf')) {
+    Write-Section 'DRY RUN MODE'
+}
+
+$DotfilesFolder = (Resolve-Path $DotfilesFolder).Path
+$DestinationFolder = (Resolve-Path $DestinationFolder).Path
+$ScriptPath = $MyInvocation.MyCommand.Path
+
+if (-not (Test-Path $DotfilesFolder -PathType Container) -or
+    -not (Test-Path $DestinationFolder -PathType Container)) {
+    Throw "Either DotfilesFolder or DestinationFolder does not exist."
+}
+
+# Build ignore list
+Write-Section 'Building Ignore List'
+$IgnoredPaths = @('.dotfile-ignore')
+$dotIgnore = Join-Path $DotfilesFolder '.dotfile-ignore'
+if (Test-Path $dotIgnore) {
+    Get-Content $dotIgnore | ForEach-Object { $_.Trim() } |
+    Where-Object { $_ -and -not $_.StartsWith('#') } |
+    ForEach-Object {
+        if (IsValidGitIgnorePath $_) {
+            $IgnoredPaths += $_
+            Write-ItemStatus -Status Added -Path $_
         }
         else {
-            Write-VerboseCustom "    $line (skipped: invalid .gitignore pattern)"
+            Write-ItemStatus -Status Invalid -Path $_
         }
     }
 }
+$IgnoredPaths += (Split-Path $ScriptPath -Leaf)
 
 # ==============================================================================
-# Folders Creation
+# Scan Phase: Collect plan items
 # ==============================================================================
 
-$CreatedFolderCount = 0
-$CreatedLinkCount = 0
+$QueuedFolders = [System.Collections.ArrayList]@()
+$QueuedLinks = [System.Collections.ArrayList]@()
+$ConflictLinks = [System.Collections.ArrayList]@()
+$ConflictFilesToAdopt = [System.Collections.ArrayList]@()
+$ResolveConflicts = [System.Collections.ArrayList]@()
+$ResolveAdoption = [System.Collections.ArrayList]@()
 
-Write-Output ""
-Write-Output "Processing Folders in: $DotfilesFolder"
-Write-Output ""
+Write-Section 'Scanning Folders to Mirror'
+$ScanDirectories = Get-ChildItem -Path $DotfilesFolder -Directory -Recurse | `
+    Sort-Object FullName
 
-$Directories = Get-ChildItem -Path $DotfilesFolder -Directory -Recurse | Sort-Object { $_.FullName }
-foreach ($dir in $Directories) {
-    $relativeDir = $dir.FullName.Substring($DotfilesFolder.Length).TrimStart('\', '/')
-    $destDir = Join-Path $DestinationFolder $relativeDir
+foreach ($folder in $ScanDirectories) {
+    $RelativePath = $folder.FullName.Substring($DotfilesFolder.Length).TrimStart('\', '/')
 
-    if (IsIgnored $relativeDir) {
-        Write-ItemStatus `
-            -Status Ignored `
-            -Path $destDir
+    if (IsIgnored $RelativePath) {
+        Write-ItemStatus -Status Ignored -Path $RelativePath
         continue
     }
-    if (-not (Test-Path $destDir -PathType Container)) {
-        Write-ItemStatus `
-            -Status Queued `
-            -Path $destDir
-        if (-not $DryRun) {
-            New-Item -ItemType Directory -Path $destDir | Out-Null
-        }
-        $CreatedFolderCount++
+
+    $target = Join-Path $DestinationFolder $RelativePath
+
+    if (Test-Path $target) {
+        Write-ItemStatus -Status Exists -Path $RelativePath
+        continue
     }
-    else {
-        Write-ItemStatus `
-            -Status Exists `
-            -Path $destDir
-    }
+
+    $QueuedFolders.Add($target) | Out-Null
+    Write-ItemStatus -Status Queued -Path $RelativePath
 }
 
-# ==============================================================================
-# Files Processing and Queuing Symlink Creation
-# ==============================================================================
+Write-Section 'Scanning Files for Symlinks'
+$ScanFiles = Get-ChildItem -Path $DotfilesFolder -File -Recurse | `
+    Sort-Object FullName
 
-# Array to collect symbolic link creation commands.
-$SymlinkCommands = @()
+foreach ($file in $ScanFiles) {
+    $RelativePath = $file.FullName.Substring($DotfilesFolder.Length).TrimStart('\', '/')
 
-Write-Output ""
-Write-Output "Processing Files in: $DotfilesFolder"
-Write-Output ""
-
-$Files = Get-ChildItem -Path $DotfilesFolder -File -Recurse | Sort-Object { $_.FullName }
-foreach ($file in $Files) {
-    $relativeFile = $file.FullName.Substring($DotfilesFolder.Length).TrimStart('\', '/')
-    $destinationFile = Join-Path $DestinationFolder $relativeFile
-
-    # Its this script, or its on the Skip List
-    if ( ($file.FullName -eq $ScriptPath) -or (IsIgnored $relativeFile) ) {
-        Write-ItemStatus `
-            -Status Ignored `
-            -Path $destinationFile
+    # Do we Ignore this relative path?
+    if (IsIgnored $RelativePath) {
+        Write-ItemStatus -Status Ignored -Path $RelativePath
         continue
     }
 
-    # Does the Symbolic Link already exist?
-    if (Test-Path $destinationFile) {
-        $destItem = Get-Item $destinationFile -Force
-        if ( ($destItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -and ($destItem.Target -eq $file.FullName) ) {
-            Write-ItemStatus `
-                -Status Exists `
-                -Path $destinationFile `
-                -DestPath $destItem.Target
+    $DestinationPath = Join-Path $DestinationFolder $RelativePath
+
+    # Does the Destination Path Already Exist
+    if (Test-Path $DestinationPath) {
+        $item = Get-Item $DestinationPath -Force
+
+        # Is this item a regular file (not symbolic link)
+        if (-not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+            $ConflictFilesToAdopt.Add([pscustomobject]@{
+                    Relative        = $RelativePath
+                    SymLinkTarget   = $file.FullName
+                    SymLinkLocation = $DestinationPath
+                }) | Out-Null
+            Write-ItemStatus -Status Conflict -Path $RelativePath
             continue
         }
-    }
 
-    if (Test-Path $destinationFile) {
-        Write-Output "Adopt?:          $destinationFile"
-        $moveFile = $false
-        if ($AutoApprove) {
-            $moveFile = $true
-            Write-VerboseCustom "+ AutoApprove adopting file"
-        }
-        else {
-            $response = Read-Host "? Do you want to move this file to the dotfiles folder? (Y/N)"
-            if ($response -match '^(Y|y)') {
-                $moveFile = $true
+        # If this item is a Symbolic Link
+        if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+
+            # If this Symbolic Link is Already Correct
+            if ($item.Target -eq $file.FullName) {
+                Write-ItemStatus -Status Exists -Path $RelativePath -DestPath $file.FullName
+                continue
+            }
+            # Otherwise Symbolic Link doesn't point to the file this script thinks it should
+            else {
+                $ConflictLinks.Add([pscustomobject]@{
+                        SymLinkCurrent  = $item.Target
+                        SymLinkLocation = $DestinationPath
+                        SymLinkTarget   = $file.FullName
+                        Relative        = $RelativePath
+                    }) | Out-Null
+                Write-ItemStatus -Status Conflict -Path $RelativePath -DestPath $file.FullName
+                continue
             }
         }
-        if ($moveFile) {
-            Write-VerboseCustom "+ Moving file $destinationFile to $($file.FullName)"
-            if (-not $DryRun) {
-                Move-Item -Path $destinationFile -Destination $file.FullName -Force
+    }
+
+    # Otherwise Queue the Symbolic link to be created
+    $QueuedLinks.Add([pscustomobject]@{
+            SymLinkLocation = $DestinationPath
+            SymLinkTarget   = $file.FullName
+            Relative        = $RelativePath
+        }) | Out-Null
+    Write-ItemStatus -Status Queued  -Path $RelativePath -DestPath $file.FullName
+}
+
+$QueuedFolders = $QueuedFolders | Sort-Object -Unique
+$QueuedLinks = $QueuedLinks | Sort-Object -Property Relative -Unique
+$ConflictLinks = $QueuedLinks | Sort-Object -Property Relative -Unique
+$ConflictFilesToAdopt = $ConflictFilesToAdopt | Sort-Object -Property Relative -Unique
+
+# ==============================================================================
+# Resolve Files to Adopt
+# ==============================================================================
+
+if ($ConflictFilesToAdopt.Count -gt 0) {
+    Write-Section 'Resolving File to Adopt into dotfiles management'
+
+    # define four choices: Yes, Yes to All, No, No to All
+    $choices = [System.Management.Automation.Host.ChoiceDescription[]]@(
+        [System.Management.Automation.Host.ChoiceDescription]::new('&Yes', 'Resolve this conflict'),
+        [System.Management.Automation.Host.ChoiceDescription]::new('Yes to &All', 'Resolve all conflicts'),
+        [System.Management.Automation.Host.ChoiceDescription]::new('&No', 'Skip this conflict'),
+        [System.Management.Automation.Host.ChoiceDescription]::new('No to A&ll', 'Skip all remaining conflicts')
+    )
+
+    $default = 2 # No
+    $processAll = $false
+    $skipAll = $false
+
+    foreach ($conf in $ConflictFilesToAdopt) {
+        if ($skipAll) { break }
+
+        Write-Host "$($conf.Relative)"
+        Write-Host "    File:   $($conf.SymLinkLocation)"
+        Write-Host "    To:     $($conf.SymLinkTarget)"
+        # Write-Host "    Do you want to move the file into the dotfile folder?"
+
+        if (-not $processAll) {
+            $idx = $Host.UI.PromptForChoice('', '    Adopt this Conflict & Create Symbolic Link?', $choices, $default)
+            switch ($idx) {
+                0 { $resolve = $true }                      # Yes
+                1 { $resolve = $true; $processAll = $true } # Yes to All
+                2 { $resolve = $false }                     # No
+                3 { $resolve = $false; $skipAll = $true }   # No to All
             }
         }
         else {
-            Write-VerboseCustom "+ Not moving file $destinationFile"
-            continue
+            # Already chosen “Yes to All”
+            $resolve = $true
+        }
+
+        if ($resolve) {
+            $ResolveAdoption += $conf
         }
     }
 
-    if (Test-Path $destinationFile) {
-        Write-ItemStatus `
-            -Status Conflict `
-            -Path $destinationFile `
-            -DestPath $destItem.Target
-        continue
+    if ($ResolveAdoption.Count -gt 0) {
+        Write-Section 'Queued Conflicts to Fix'
+        $ResolveAdoption | ForEach-Object { Write-Host "Fix: $($_.Relative)" }
     }
-
-    Write-ItemStatus -Status Queued `
-        -Path $destinationFile `
-        -DestPath $file.FullName
-
-    # Create a command string for this symbolic link. Use double quotes to embed the paths.
-    $cmd = "New-Item -ItemType SymbolicLink -Path `"$destinationFile`" -Target `"$($file.FullName)`""
-    $SymlinkCommands += $cmd
-    $CreatedLinkCount++
 }
 
 # ==============================================================================
-# Final Summary Output (Folders Created, Symlinks Queued)
+# Resolve Conflicting Symbolic Links
 # ==============================================================================
 
-Write-Host ""
-if ($DryRun) {
-    Write-Host "Dry Run Mode Enabled."
-    Write-Host "Would have Created $CreatedFolderCount Folders"
-    Write-Host "Would have Queued $CreatedLinkCount Symbolic Link Creations"
-    exit 0
+if ($ConflictLinks.Count -gt 0) {
+    Write-Section 'Resolving Conflicts'
+
+    # define four choices: Yes, Yes to All, No, No to All
+    $choices = [System.Management.Automation.Host.ChoiceDescription[]]@(
+        [System.Management.Automation.Host.ChoiceDescription]::new('&Yes', 'Resolve this conflict'),
+        [System.Management.Automation.Host.ChoiceDescription]::new('Yes to &All', 'Resolve all conflicts'),
+        [System.Management.Automation.Host.ChoiceDescription]::new('&No', 'Skip this conflict'),
+        [System.Management.Automation.Host.ChoiceDescription]::new('No to A&ll', 'Skip all remaining conflicts')
+    )
+    $default = 2 # No
+    $processAll = $false
+    $skipAll = $false
+
+    foreach ($conf in $ConflictLinks) {
+        if ($skipAll) { break }
+
+        Write-Host "Conflict: $($conf.Relative)"
+        Write-Host "    Current Dest:   $($conf.SymLinkCurrent)"
+        Write-Host "    Expected Dest:  $($conf.SymLinkTarget)"
+
+        if (-not $processAll) {
+            $idx = $Host.UI.PromptForChoice('', '    Replace this Conflict?', $choices, $default)
+            switch ($idx) {
+                0 { $resolve = $true }                      # Yes
+                1 { $resolve = $true; $processAll = $true } # Yes to All
+                2 { $resolve = $false }                     # No
+                3 { $resolve = $false; $skipAll = $true }   # No to All
+            }
+        }
+        else {
+            # Already chosen “Yes to All”
+            $resolve = $true
+        }
+
+        if ($resolve) {
+            $ResolveConflicts += $conf
+        }
+    }
+
+    if ($ResolveConflicts.Count) {
+        Write-Section 'Queued Conflicts to Fix'
+        $ResolveConflicts | ForEach-Object { Write-Host "Fix: $($_.Relative)" }
+    }
+}
+
+# ==============================================================================
+# Show Plan Summary
+# ==============================================================================
+Write-Section 'Plan Summary'
+
+if ($QueuedFolders.Count -gt 0) {
+    Write-Host "Folders to Create:"
+    Write-Host ""
+
+    foreach ($Folder in $QueuedFolders) {
+        Write-ItemStatus `
+            -Status Create `
+            -Path $Folder
+    }
+}
+else { Write-Host "No new folders required." }
+
+Write-Host "`n--------------------"
+
+if ($QueuedLinks.Count -gt 0) {
+    Write-Host "Links to Create:"
+    Write-Host ""
+    foreach ($Symlink in $QueuedLinks) {
+        Write-ItemStatus `
+            -Status Create `
+            -Path $Symlink.SymLinkLocation `
+            -DestPath $Symlink.SymLinkTarget
+    }
+}
+else { Write-Host "No new symlinks required." }
+
+Write-Host "`n--------------------"
+
+if ($ResolveAdoption.Count -gt 0) {
+    Write-Host "Existing Files to Adopt:"
+    Write-Host ""
+    foreach ($adopt in $ResolveAdoption) {
+        Write-ItemStatus `
+            -Status Adopt `
+            -Path $adopt.SymLinkLocation `
+            -DestPath $adopt.SymLinkTarget
+    }
 }
 else {
-    Write-Host "Created $CreatedFolderCount Folders"
-    Write-Host "Queued $CreatedLinkCount Symbolic Link Creations"
+    Write-Host "No Files to Adopt detected."
+}
+
+Write-Host "`n--------------------"
+
+if ($ResolveConflicts.Count -gt 0) {
+    Write-Host "Conflicts to Resolve:"
+    Write-Host ""
+    foreach ($conf in $ResolveConflicts) {
+        Write-ItemStatus `
+            -Status Replace `
+            -Path $conf.SymLinkLocation `
+            -DestPath $conf.SymLinkTarget
+    }
+}
+else {
+    Write-Host "No conflicts detected."
 }
 
 # ==============================================================================
-# Show the exact list of pending symlinks & prompt for confirmation
+# DryRun / Confirmation
 # ==============================================================================
-
-if ($SymlinkCommands.Count -gt 0) {
+if ($PSBoundParameters.ContainsKey('WhatIf')) {
     Write-Host ""
-    Write-Host "The following symbolic links are queued to be created using Admin:"
-    foreach ($cmd in $SymlinkCommands) {
-        Write-Host "  $cmd"
+    Write-Host "DryRun (-WhatIf) enabled; no changes will be made."
+    return
+}
+
+
+$ok = Read-Host "`nApply these changes? (Y/N)"
+if ($ok -notmatch '^[Yy]') {
+    Write-Host "Operation cancelled by user."
+    return
+}
+
+# ==============================================================================
+# Execution Phase
+# ==============================================================================
+Write-Section 'Applying Changes'
+
+# 1) Create Folders
+foreach ($f in $QueuedFolders | Sort-Object -Unique) {
+    if ($PSCmdlet.ShouldProcess($f, 'New Folder')) {
+        New-Item -ItemType Directory -Path $f -Force | Out-Null
     }
-    Write-Host ""
-    # Prompt for Y/N confirmation
-    $response = Read-Host "? Do you want to create these symbolic links (requires admin)? (Y/N)"
-    if ($response -notmatch '^(Y|y)') {
-        Write-Host "Symbolic link creation aborted by user."
-        exit 1
+}
+
+# 2) Adopt approved files
+foreach ($adopt in $ResolveAdoption) {
+    Move-Item -Path $adopt.SymLinkLocation -Destination $adopt.SymLinkTarget -Force
+    Write-ItemStatus -Status Adopted -Path $adopt.SymLinkLocation
+    $QueuedLinks.Add(
+        [pscustomobject]@{
+            SymLinkLocation = $adopt.SymLinkLocation
+            SymLinkTarget   = $adopt.SymLinkTarget
+            Relative        = $adopt.Relative
+        }
+    ) | Out-Null
+}
+
+# 3) Remove Approved Conflict Symlinks
+foreach ($conflict in $ResolveConflicts) {
+    Remove-Item -Path $conflict.SymLinkLocation -Confirm
+    Write-ItemStatus -Status Removed -Path $conflict.SymLinkLocation
+    $QueuedLinks.Add(
+        [pscustomobject]@{
+            SymLinkLocation = $conflict.SymLinkLocation
+            SymLinkTarget   = $conflict.SymLinkTarget
+            Relative        = $conflict.Relative
+        }
+    ) | Out-Null
+}
+
+if ($QueuedLinks.Count -eq 0) {
+    return
+}
+
+if (Test-CanUserCreateSymbolicLink) {
+    Write-Sections 'Create Queued Symbolic Links as Current User'
+    foreach ($l in $QueuedLinks) {
+        if ($PSCmdlet.ShouldProcess($l.SymLinkLocation, 'Create symbolic link')) {
+            New-Item -Path $l.SymLinkLocation -ItemType SymbolicLink -Value $l.SymLinkTarget -Force
+        }
     }
-
-    # ==============================================================================
-    # Execute Symlink Commands in Elevated Process Using a Single Combined Command
-    # ==============================================================================
-
-    # Combine commands into one single string using "&&"
-    $combinedCommand = $SymlinkCommands -join " && "
-
+}
+else {
+    Write-Sections 'Create Queued Symbolic Links as Admin'
+    Write-Host "Unable to create symbolic links under your current user permissions." -ForegroundColor DarkRed
     Write-Host ""
-    Write-Host "Preparing to create symbolic links with elevated privileges..."
 
-    # Check if running as admin.
-    if (-not (Test-Admin)) {
-        Write-Host "Requesting admin privileges to create symbolic links..."
-        Start-Process -FilePath pwsh -Verb runAs -ArgumentList "-NoProfile", "-Command", $combinedCommand
+    $commands = $QueuedLinks | `
+        ForEach-Object { "New-Item -Path `"$($_.SymLinkLocation)`" -ItemType SymbolicLink -Value `"$($_.SymLinkTarget)`" -Force" }
+
+    $commandString = $commands -join '    &&    '
+
+    Write-Host "The following command will be run as Administrator to provision them instead:" `
+        -ForegroundColor Yellow `
+        -BackgroundColor Black
+    Write-Host ""
+    Write-Host $commandString
+    Write-Host ""
+
+    $approve = Read-Host "Do you want to elevation and execution the above command as Administrator? (Y/N)"
+    if ($approve -match '^[Yy]$') {
+        Start-Process `
+            -FilePath pwsh `
+            -Verb RunAs `
+            -ArgumentList "-NoProfile", "-Command", $commandString
     }
     else {
-        Write-Host "Running in admin mode. Creating symbolic links..."
-        pwsh -NoProfile -Command $combinedCommand
+        Write-Host "Symlink creation canceled by user." `
+            -ForegroundColor Yellow `
+            -BackgroundColor Black
     }
-
-    Write-Host "Symbolic link creation process initiated."
 }
+
+Write-Host ""
+Write-Host "All done."
