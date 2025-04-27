@@ -1,0 +1,1 @@
+C:/Users/ItsJustMech/projects/dotfiles-windows/Documents/PowerShell/Modules/Remove-NameSubstring/Remove-NameSubstring.psm1
