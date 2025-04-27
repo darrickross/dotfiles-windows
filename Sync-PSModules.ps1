@@ -94,6 +94,10 @@ function Sync-PSModules {
     $ConflictLinks = @()
     $ResolveConflicts = @()
 
+    if ($PSVersionTable.PSVersion.Major -lt 7) {
+        Throw 'This script requires PowerShell 7+ for command chaining.'
+    }
+
     if ($PSBoundParameters.ContainsKey('WhatIf')) {
         Write-Section 'DRY RUN MODE'
     }
