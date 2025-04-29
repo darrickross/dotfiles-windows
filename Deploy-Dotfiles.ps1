@@ -483,7 +483,6 @@ if ($PSBoundParameters.ContainsKey('WhatIf')) {
     return
 }
 
-
 $ok = Read-Host "`nApply these changes? (Y/N)"
 if ($ok -notmatch '^[Yy]') {
     Write-Host "Operation cancelled by user."
