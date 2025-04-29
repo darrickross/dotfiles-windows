@@ -181,8 +181,20 @@ if (-not (Test-Path $DotfilesFolder -PathType Container) -or
 
 # Build ignore list
 Write-Section 'Building Ignore List'
-$IgnoredPaths = @('.dotfile-ignore')
-$dotIgnore = Join-Path $DotfilesFolder '.dotfile-ignore'
+$IgnoredPaths = @()
+
+# Add dotfile to the list
+$dotfile_ignore = '.dotfile-ignore'
+$IgnoredPaths += $dotfile_ignore
+Write-ItemStatus -Status Added -Path $dotfile_ignore
+
+# Add this script
+$thisScriptFile = Split-Path $ScriptPath -Leaf
+$IgnoredPaths += ($thisScriptFile)
+Write-ItemStatus -Status Added -Path $thisScriptFile
+
+# Read items from ignore list
+$dotIgnore = Join-Path $DotfilesFolder $dotfile_ignore
 if (Test-Path $dotIgnore) {
     Get-Content $dotIgnore | ForEach-Object { $_.Trim() } |
     Where-Object { $_ -and -not $_.StartsWith('#') } |
@@ -196,7 +208,6 @@ if (Test-Path $dotIgnore) {
         }
     }
 }
-$IgnoredPaths += (Split-Path $ScriptPath -Leaf)
 
 # ==============================================================================
 # Scan Phase: Collect plan items
