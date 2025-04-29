@@ -1,28 +1,28 @@
 // Place your key bindings in this file to override the defaults
 [
-    {
-        "key": "ctrl+d ctrl+d",
-        "command": "git.stageSelectedRanges",
-        "when": "isInDiffEditor && !operationInProgress"
-    },
-    {
-        "key": "ctrl+k ctrl+alt+s",
-        "command": "-git.stageSelectedRanges",
-        "when": "isInDiffEditor && !operationInProgress"
-    },
-    {
-        "key": "ctrl+d ctrl+r",
-        "command": "git.unstageSelectedRanges",
-        "when": "isInDiffEditor && !operationInProgress"
-    },
-    {
-        "key": "ctrl+k ctrl+n",
-        "command": "-git.unstageSelectedRanges",
-        "when": "isInDiffEditor && !operationInProgress"
-    },
-    {
-        "key": "ctrl+f5",
-        "command": "workbench.action.reloadWindow",
-        "when": "editorTextFocus"
-    }
+  {
+    "key": "ctrl+d ctrl+d",
+    "command": "git.stageSelectedRanges",
+    "when": "isInDiffEditor && !operationInProgress"
+  },
+  {
+    "key": "ctrl+k ctrl+alt+s",
+    "command": "-git.stageSelectedRanges",
+    "when": "isInDiffEditor && !operationInProgress"
+  },
+  {
+    "key": "ctrl+d ctrl+r",
+    "command": "git.unstageSelectedRanges",
+    "when": "isInDiffEditor && !operationInProgress"
+  },
+  {
+    "key": "ctrl+k ctrl+n",
+    "command": "-git.unstageSelectedRanges",
+    "when": "isInDiffEditor && !operationInProgress"
+  },
+  {
+    "key": "ctrl+f5",
+    "command": "workbench.action.reloadWindow",
+    "when": "editorTextFocus"
+  }
 ]
