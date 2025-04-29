@@ -534,7 +534,7 @@ if ($QueuedLinks.Count -eq 0) {
 $QueuedLinks = $QueuedLinks | Sort-Object -Property Relative -Unique
 
 if (Test-CanUserCreateSymbolicLink) {
-    Write-Sections 'Create Queued Symbolic Links as Current User'
+    Write-Section 'Create Queued Symbolic Links as Current User'
     foreach ($l in $QueuedLinks) {
         if ($PSCmdlet.ShouldProcess($l.SymLinkLocation, 'Create symbolic link')) {
             New-Item -Path $l.SymLinkLocation -ItemType SymbolicLink -Value $l.SymLinkTarget -Force
@@ -542,7 +542,7 @@ if (Test-CanUserCreateSymbolicLink) {
     }
 }
 else {
-    Write-Sections 'Create Queued Symbolic Links as Admin'
+    Write-Section 'Create Queued Symbolic Links as Admin'
     Write-Host "Unable to create symbolic links under your current user permissions." -ForegroundColor DarkRed
     Write-Host ""
 
