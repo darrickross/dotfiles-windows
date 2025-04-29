@@ -306,7 +306,7 @@ foreach ($file in $ScanFiles) {
 
 $QueuedFolders = $QueuedFolders | Sort-Object -Unique
 $QueuedLinks = $QueuedLinks | Sort-Object -Property Relative -Unique
-$ConflictLinks = $QueuedLinks | Sort-Object -Property Relative -Unique
+$ConflictLinks = $ConflictLinks | Sort-Object -Property Relative -Unique
 $ConflictFilesToAdopt = $ConflictFilesToAdopt | Sort-Object -Property Relative -Unique
 
 # ==============================================================================
