@@ -305,7 +305,7 @@ foreach ($file in $ScanFiles) {
 }
 
 $QueuedFolders = $QueuedFolders | Sort-Object -Unique
-$QueuedLinks = $QueuedLinks | Sort-Object -Property Relative -Unique
+# Don't update QueuedLink
 $ConflictLinks = $ConflictLinks | Sort-Object -Property Relative -Unique
 $ConflictFilesToAdopt = $ConflictFilesToAdopt | Sort-Object -Property Relative -Unique
 
@@ -433,7 +433,7 @@ Write-Host "`n--------------------"
 if ($QueuedLinks.Count -gt 0) {
     Write-Host "Links to Create:"
     Write-Host ""
-    foreach ($Symlink in $QueuedLinks) {
+    foreach ($Symlink in $QueuedLinks | Sort-Object -Property Relative -Unique) {
         Write-ItemStatus `
             -Status Create `
             -Path $Symlink.SymLinkLocation `
@@ -530,6 +530,8 @@ foreach ($conflict in $ResolveConflicts) {
 if ($QueuedLinks.Count -eq 0) {
     return
 }
+
+$QueuedLinks = $QueuedLinks | Sort-Object -Property Relative -Unique
 
 if (Test-CanUserCreateSymbolicLink) {
     Write-Sections 'Create Queued Symbolic Links as Current User'
