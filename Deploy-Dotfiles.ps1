@@ -516,7 +516,7 @@ foreach ($adopt in $ResolveAdoption) {
 
 # 3) Remove Approved Conflict Symlinks
 foreach ($conflict in $ResolveConflicts) {
-    Remove-Item -Path $conflict.SymLinkLocation -Confirm
+    Remove-Item -Path $conflict.SymLinkLocation -Force
     Write-ItemStatus -Status Removed -Path $conflict.SymLinkLocation
     $QueuedLinks.Add(
         [pscustomobject]@{
