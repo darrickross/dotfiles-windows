@@ -1,4 +1,26 @@
-# Load Write-Verbose/Write-Warning
+# ----------------------------------------
+# Check if Execution Policy Allows Script Execution
+# ----------------------------------------
+$effectivePolicy = Get-ExecutionPolicy -Scope Process
+if ($effectivePolicy -eq 'Undefined') {
+    $effectivePolicy = Get-ExecutionPolicy
+}
+
+$allowedPolicies = @('Unrestricted', 'RemoteSigned', 'Bypass')
+
+if (-not ($allowedPolicies -contains $effectivePolicy)) {
+    Write-Host "Your current execution policy is '$effectivePolicy', which may prevent this profile script from working properly." -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "To allow this script to run, you can set the policy to 'RemoteSigned' with the following command (requires administrator):" -ForegroundColor Cyan
+    Write-Host "  Set-ExecutionPolicy RemoteSigned -Scope CurrentUser" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Profile execution halted." -ForegroundColor Red
+    return
+}
+
+# ----------------------------------------
+# Load Write-Verbose / Write-Warning
+# ----------------------------------------
 try {
     Import-Module Microsoft.PowerShell.Utility -ErrorAction Stop
 }
