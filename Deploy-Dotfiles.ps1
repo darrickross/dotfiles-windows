@@ -1,29 +1,36 @@
 <#
 .SYNOPSIS
-    Deploy dotfiles by creating matching destination folders and symbolic links for files.
-.DESCRIPTION
-    This script takes a dotfiles folder, a destination folder, and several switches:
-      -DryRun: simulate the changes without modifying the system.
-      -VerboseOutput: print extra logging details.
-      -AutoApprove: automatically move existing destination files into the dotfiles folder.
+    Deploy and manage dotfiles using symbolic links with conflict handling and automation options.
 
-    It:
-      1. Validates that both folders exist.
-      2. Collects ignore rules (.dotfile-ignore + script itself).
-      3. Scans and queues all new folders to create.
-      4. Scans and queues all symlinks to create, tracking conflicts separately.
-      5. Shows a “plan” summary of folders, links, and conflicts.
-      6. Prompts for confirmation, then applies all changes (honoring -DryRun and -WhatIf).
+.DESCRIPTION
+    This PowerShell script sets up symbolic links from a dotfiles source directory into a destination directory, typically the user's profile. It supports various modes for safely applying changes and resolving conflicts.
+
+    Features:
+      - Validates input directories.
+      - Loads ignore rules from a `.dotfile-ignore` file and excludes the script itself.
+      - Queues destination folders for creation based on the structure in the dotfiles directory.
+      - Scans and queues symlink operations, tracking conflicts with existing files or mismatched symlinks.
+      - Presents a dry-run style summary ("plan") showing pending actions.
+      - Resolves:
+          * Regular files already present in the destination path (can be "adopted" into dotfiles).
+          * Existing symlinks pointing to the wrong targets (can be replaced).
+      - Applies all changes based on user confirmation or auto-approval.
+      - Supports fallback to elevated privileges if symlink creation fails due to permission issues.
+
 .PARAMETER DotfilesFolder
-    Path to the dotfiles folder. Defaults to the current directory.
+    The source directory containing the dotfiles. Defaults to the current working directory.
+
 .PARAMETER DestinationFolder
-    The destination directory where symlinks will be created. Defaults to $env:USERPROFILE.
+    The destination directory where symbolic links will be created. Defaults to the user's home directory ($env:USERPROFILE).
+
 .PARAMETER WhatIf
-    If set, no real changes are made (uses -WhatIf).
+    Simulates all changes without making modifications. Equivalent to a dry run.
+
 .PARAMETER VerboseOutput
-    If set, additional informational output is shown.
+    Enables verbose messages for detailed logging and progress tracking.
+
 .PARAMETER AutoApprove
-    If set, existing destination files are automatically moved without prompting.
+    Automatically adopts conflicting destination files without prompting the user for confirmation.
 #>
 
 [CmdletBinding(SupportsShouldProcess = $true)]
