@@ -1,24 +1,19 @@
 // Place your key bindings in this file to override the defaults
 [
   {
-    "key": "ctrl+d ctrl+d",
-    "command": "git.stageSelectedRanges",
-    "when": "isInDiffEditor && !operationInProgress"
+    "key": "ctrl+d ctrl+r",
+    "command": "git.revertSelectedRanges",
+    "when": "editorTextFocus && !operationInProgress"
   },
   {
-    "key": "ctrl+k ctrl+alt+s",
-    "command": "-git.stageSelectedRanges",
-    "when": "isInDiffEditor && !operationInProgress"
+    "key": "ctrl+d ctrl+d",
+    "command": "git.stageSelectedRanges",
+    "when": "editorTextFocus && !operationInProgress"
   },
   {
     "key": "ctrl+d ctrl+r",
     "command": "git.unstageSelectedRanges",
-    "when": "isInDiffEditor && !operationInProgress"
-  },
-  {
-    "key": "ctrl+k ctrl+n",
-    "command": "-git.unstageSelectedRanges",
-    "when": "isInDiffEditor && !operationInProgress"
+    "when": "editorTextFocus && !operationInProgress && isInDiffEditor && isInDiffRightEditor"
   },
   {
     "key": "ctrl+f5",
