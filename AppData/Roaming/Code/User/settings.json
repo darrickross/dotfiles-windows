@@ -1,4 +1,7 @@
 {
+    "black-formatter.interpreter": [
+        "/usr/bin/python3.13",
+    ],
     "cSpell.enabledFileTypes": {
         "shellscript": true,
         "ssh_config": true,
