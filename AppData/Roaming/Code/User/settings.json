@@ -1,18 +1,11 @@
 {
-    "black-formatter.interpreter": [
-        "/usr/bin/python3.13",
-    ],
+    "black-formatter.interpreter": ["/usr/bin/python3.13"],
     "cSpell.enabledFileTypes": {
         "shellscript": true,
         "ssh_config": true,
-        "terraform": true,
+        "terraform": true
     },
-    "cSpell.userWords": [
-        "Darrick",
-        "darrickross",
-        "itsjustmech",
-        "Yubikey"
-    ],
+    "cSpell.userWords": ["Darrick", "darrickross", "itsjustmech", "Yubikey"],
     "diffEditor.codeLens": true,
     "diffEditor.ignoreTrimWhitespace": false,
     "editor.fontFamily": "'0xProto Nerd Font Mono', 'Cascadia Mono', 'FontAwesome', monospace",
@@ -23,7 +16,7 @@
     "explorer.confirmDragAndDrop": false,
     "extensions.autoUpdate": false,
     "files.associations": {
-        "*.service": "ini",
+        "*.service": "ini"
     },
     "git.autofetch": false,
     "git.confirmSync": false,
@@ -33,7 +26,7 @@
         "*": false,
         "plaintext": false,
         "markdown": false,
-        "scminput": false,
+        "scminput": false
     },
     "github.copilot.nextEditSuggestions.enabled": false,
     "gitlens.currentLine.enabled": false,
@@ -42,12 +35,12 @@
     "notebook.editorOptionsCustomizations": {
         "editor.tabSize": 2,
         "editor.indentSize": 2,
-        "editor.insertSpaces": true,
+        "editor.insertSpaces": true
     },
     "notebook.output.scrolling": true,
     "powershell.integratedConsole.showOnStartup": false,
     "remote.SSH.remotePlatform": {
-        "blueripper": "linux",
+        "blueripper": "linux"
     },
     "security.workspace.trust.untrustedFiles": "open",
     "terminal.integrated.fontFamily": "",
@@ -59,5 +52,5 @@
     "terminal.integrated.stickyScroll.enabled": true,
     "trailing-spaces.trimOnSave": true,
     "window.zoomLevel": -1,
-    "workbench.startupEditor": "none",
+    "workbench.startupEditor": "none"
 }
