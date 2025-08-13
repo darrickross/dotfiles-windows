@@ -1,56 +1,61 @@
 {
-    "black-formatter.interpreter": ["/usr/bin/python3.13"],
-    "cSpell.enabledFileTypes": {
-        "shellscript": true,
-        "ssh_config": true,
-        "terraform": true
-    },
-    "cSpell.userWords": ["Darrick", "darrickross", "itsjustmech", "Yubikey"],
-    "diffEditor.codeLens": true,
-    "diffEditor.ignoreTrimWhitespace": false,
-    "editor.fontFamily": "'0xProto Nerd Font Mono', 'Cascadia Mono', 'FontAwesome', monospace",
-    "editor.fontLigatures": true,
-    "editor.formatOnPaste": true,
-    "editor.formatOnSave": true,
-    "editor.minimap.enabled": false,
-    "explorer.confirmDragAndDrop": false,
-    "extensions.autoUpdate": false,
-    "files.associations": {
-        "*.service": "ini"
-    },
-    "git.autofetch": false,
-    "git.confirmSync": false,
-    "git.openRepositoryInParentFolders": "never",
-    "git.suggestSmartCommit": false,
-    "github.copilot.enable": {
-        "*": false,
-        "plaintext": false,
-        "markdown": false,
-        "scminput": false
-    },
-    "github.copilot.nextEditSuggestions.enabled": false,
-    "gitlens.currentLine.enabled": false,
-    "gitlens.showWhatsNewAfterUpgrades": false,
-    "jupyter.askForKernelRestart": false,
-    "notebook.editorOptionsCustomizations": {
-        "editor.tabSize": 2,
-        "editor.indentSize": 2,
-        "editor.insertSpaces": true
-    },
-    "notebook.output.scrolling": true,
-    "powershell.integratedConsole.showOnStartup": false,
-    "remote.SSH.remotePlatform": {
-        "blueripper": "linux"
-    },
-    "security.workspace.trust.untrustedFiles": "open",
-    "terminal.integrated.fontFamily": "",
-    "terminal.integrated.fontLigatures.enabled": true,
-    "terminal.integrated.minimumContrastRatio": 1,
-    "terminal.integrated.persistentSessionScrollback": 10000,
-    "terminal.integrated.scrollback": 10000,
-    "terminal.integrated.shellIntegration.enabled": false,
-    "terminal.integrated.stickyScroll.enabled": true,
-    "trailing-spaces.trimOnSave": true,
-    "window.zoomLevel": -1,
-    "workbench.startupEditor": "none"
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "black-formatter.interpreter": ["/usr/bin/python3.13"],
+  "cSpell.enabledFileTypes": {
+    "shellscript": true,
+    "ssh_config": true,
+    "terraform": true
+  },
+  "cSpell.userWords": ["Darrick", "darrickross", "itsjustmech", "Yubikey"],
+  "diffEditor.codeLens": true,
+  "diffEditor.ignoreTrimWhitespace": false,
+  "editor.fontFamily": "'0xProto Nerd Font Mono', 'Cascadia Mono', 'FontAwesome', monospace",
+  "editor.fontLigatures": true,
+  "editor.formatOnPaste": true,
+  "editor.formatOnSave": true,
+  "editor.minimap.enabled": false,
+  "explorer.confirmDragAndDrop": false,
+  "extensions.autoUpdate": false,
+  "files.associations": {
+    "*.service": "ini"
+  },
+  "git.autofetch": false,
+  "git.confirmSync": false,
+  "git.openRepositoryInParentFolders": "never",
+  "git.suggestSmartCommit": false,
+  "github.copilot.enable": {
+    "*": false,
+    "markdown": false,
+    "plaintext": false,
+    "scminput": false
+  },
+  "github.copilot.nextEditSuggestions.enabled": false,
+  "gitlens.currentLine.enabled": false,
+  "gitlens.showWhatsNewAfterUpgrades": false,
+  "jupyter.askForKernelRestart": false,
+  "nix.formatterPath": "nixfmt",
+  "notebook.editorOptionsCustomizations": {
+    "editor.indentSize": 2,
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2
+  },
+  "notebook.output.scrolling": true,
+  "powershell.integratedConsole.showOnStartup": false,
+  "remote.SSH.remotePlatform": {
+    "blueripper": "linux"
+  },
+  "security.workspace.trust.untrustedFiles": "open",
+  "terminal.integrated.fontFamily": "",
+  "terminal.integrated.fontLigatures.enabled": true,
+  "terminal.integrated.minimumContrastRatio": 1,
+  "terminal.integrated.persistentSessionScrollback": 10000,
+  "terminal.integrated.scrollback": 10000,
+  "terminal.integrated.shellIntegration.enabled": false,
+  "terminal.integrated.stickyScroll.enabled": true,
+  "trailing-spaces.trimOnSave": true,
+  "update.showReleaseNotes": false,
+  "window.zoomLevel": -1,
+  "workbench.startupEditor": "none"
 }
