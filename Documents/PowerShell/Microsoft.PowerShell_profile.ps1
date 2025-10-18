@@ -33,6 +33,7 @@ catch {
 # ----------------------------------------
 $ModulesToImport = @(
     'Compare-FileHash'
+    'Get-DiskUsage'
     'Remove-EmptyFolders'
 )
 
