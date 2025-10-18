@@ -43,7 +43,7 @@ Follow these steps to deploy your dotfiles:
 
    ```ps
    cd $DotFileDir
-   pwsh -ExecutionPolicy Bypass -File .\Deploy-Dotfiles.ps1 -DestinationFolder $HOME -DotfilesFolder $DotFileDir -DryRun
+   pwsh -ExecutionPolicy Bypass -File .\Deploy-Dotfiles.ps1 -DestinationFolder $HOME -DotfilesFolder $DotFileDir -WhatIf
    ```
 
 4. **Apply the Dotfiles:**
