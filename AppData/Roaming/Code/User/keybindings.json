@@ -13,7 +13,7 @@
   {
     "key": "ctrl+d ctrl+r",
     "command": "git.unstageSelectedRanges",
-    "when": "editorTextFocus && !operationInProgress && isInDiffEditor && isInDiffRightEditor"
+    "when": "editorTextFocus && !operationInProgress && isInDiffEditor && isInDiffRightEditor && resourceScheme == 'git'"
   },
   {
     "key": "ctrl+f5",
