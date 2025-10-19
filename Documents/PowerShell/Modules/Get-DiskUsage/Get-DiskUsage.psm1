@@ -160,6 +160,17 @@ function Get-DiskUsage {
             catch {}
             "{0,8}  {1}" -f $sizeStr, $rel
         }
+        # add once, top-level
+        function Write-InPlace {
+            param([string]$Text)
+            $width = 0
+            try { $width = ($Host.UI.RawUI.WindowSize.Width - 1) } catch { $width = 120 }
+            if ($width -lt 10) { $width = 120 }
+            $padded = $Text.PadRight($width)
+            [Console]::Write("`r$padded")
+        }
+
+        # replace Walk with depth-first + in-place status
         function Walk {
             param(
                 [string]$Root,
@@ -170,30 +181,31 @@ function Get-DiskUsage {
             )
 
             if (Test-Excluded -FullPath $Root -Patterns $Patterns) { return }
+            if (-not (Test-Path -LiteralPath $Root)) { Write-Error "Path not found: $Root"; return }
 
-            if (-not (Test-Path -LiteralPath $Root)) {
-                Write-Error "Path not found: $Root"
-                return
-            }
-
-            # Always fetch and filter the root item first
             try {
                 $item = Get-Item -LiteralPath $Root -Force -ErrorAction Stop | Remove-NonNormalItem
-                if (-not $item) { return }  # filtered out due to attributes
+                if (-not $item) { return }
             }
             catch { return }
 
+            # progress for current folder or file
+            Write-InPlace ("Scanning: {0}" -f $Root)
+
             if (-not $item.PSIsContainer) {
-                try { & $emit $item.Length $item.FullName } catch { Write-Error $_ }
+                $line = ("{0,8}  {1}" -f (Format-Size -Bytes $item.Length -HumanReadable:$HumanReadable), $item.FullName)
+                Write-InPlace $line
+                Write-Host ""  # finalize the line
                 return
             }
 
-            # Directory branch
-            $size = Get-DirSize -Path $Root -ExcludePatterns $Patterns
-
-            & $emit $size $Root
-            if ($Summarize -or $MaxDepth -eq 0) { return }
-            if ($MaxDepth -ge 0 -and $Depth -ge $MaxDepth) { return }
+            if ($MaxDepth -ge 0 -and $Depth -ge $MaxDepth) {
+                $size = Get-DirSize -Path $Root -ExcludePatterns $Patterns
+                $line = ("{0,8}  {1}" -f (Format-Size -Bytes $size -HumanReadable:$HumanReadable), $Root)
+                Write-InPlace $line
+                Write-Host ""
+                return
+            }
 
             $nextDepth = $Depth + 1
             try {
@@ -202,9 +214,15 @@ function Get-DiskUsage {
             catch { $dirs = @() }
 
             foreach ($d in $dirs) {
-                if (Test-Excluded -FullPath $d.FullName -Patterns $Patterns) { continue }
                 Walk -Root $d.FullName -Depth $nextDepth -MaxDepth $MaxDepth -Summarize:$Summarize -Patterns $Patterns
+                # after child returns, show we're back to current root
+                Write-InPlace ("Scanning: {0}" -f $Root)
             }
+
+            $size = Get-DirSize -Path $Root -ExcludePatterns $Patterns
+            $line = ("{0,8}  {1}" -f (Format-Size -Bytes $size -HumanReadable:$HumanReadable), $Root)
+            Write-InPlace $line
+            Write-Host ""
         }
     }
     process {
