@@ -75,6 +75,7 @@ function Get-DirSize {
     catch {
         return 0L
     }
+
     foreach ($f in $files) {
         if (-not (Test-Excluded -FullPath $f.FullName -Patterns $ExcludePatterns)) {
             $total += ($f.Length)
@@ -87,6 +88,7 @@ function Get-DirSize {
     catch {
         $dirs = @()
     }
+
     foreach ($d in $dirs) {
         if (Test-Excluded -FullPath $d.FullName -Patterns $ExcludePatterns) {
             continue
@@ -167,6 +169,7 @@ function Get-DiskUsage {
 
             $nextDepth = $Depth + 1
             try {
+                # Child dirs, skip reparse points
                 $dirs = Get-ChildItem -LiteralPath $Root -Directory -Force -Attributes !ReparsePoint -ErrorAction Stop
             }
             catch {
