@@ -139,13 +139,14 @@ function Get-DiskUsage {
             $isFile = Test-Path -LiteralPath $Root -PathType Leaf
             $isDir = Test-Path -LiteralPath $Root -PathType Container
             if (-not $isFile -and -not $isDir) {
-                Write-Error "Path not found: $Root";
+                Write-Error "Path not found: $Root"
                 return
             }
 
             if ($isFile) {
                 try {
-                    $file = Get-Item -LiteralPath $Root -Force -ErrorAction Stop; & $emit $file.Length $file.FullName
+                    $file = Get-Item -LiteralPath $Root -Force -ErrorAction Stop
+                    & $emit $file.Length $file.FullName
                 }
                 catch {
                     Write-Error $_
@@ -155,7 +156,7 @@ function Get-DiskUsage {
 
             $size = Get-DirSize -Path $Root -ExcludePatterns $Patterns
             if ($Summarize -or $MaxDepth -eq 0) {
-                & $emit $size $Root;
+                & $emit $size $Root
                 return
             }
 
@@ -195,7 +196,5 @@ function Get-DiskUsage {
     }
 }
 
-
 Set-Alias -Name du -Value Get-DiskUsage
-
 Export-ModuleMember -Function Get-DiskUsage -Alias du
