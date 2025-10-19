@@ -150,16 +150,6 @@ function Get-DiskUsage {
     )
     begin {
         $patterns = Resolve-ExcludePatterns -ExcludeFrom $ExcludeFrom -Exclude $Exclude
-        $emit = {
-            param($sizeBytes, $p)
-            $sizeStr = Format-Size -Bytes $sizeBytes -HumanReadable:$HumanReadable
-            $rel = $p
-            try {
-                $rel = Resolve-Path -LiteralPath $p -Relative -ErrorAction Stop
-            }
-            catch {}
-            "{0,8}  {1}" -f $sizeStr, $rel
-        }
         # add once, top-level
         function Write-InPlace {
             param([string]$Text)
@@ -205,7 +195,6 @@ function Get-DiskUsage {
             }
             catch { return 0L }
 
-            # show current directory being scanned
             Write-InPlace ("Scanning: {0}" -f $Root)
 
             if (-not $item.PSIsContainer) {
@@ -215,28 +204,34 @@ function Get-DiskUsage {
                 return $size
             }
 
-            $exclusive = Get-LevelFileBytes -Path $Root -ExcludePatterns $Patterns
-            $inclusiveChildren = 0L
-
-            if ($MaxDepth -lt 0 -or $Depth -lt $MaxDepth) {
-                $nextDepth = $Depth + 1
-                try {
-                    $dirs = Get-ChildItem -LiteralPath $Root -Directory -Force -ErrorAction Stop | Remove-NonNormalItem
-                }
-                catch { $dirs = @() }
-
-                foreach ($d in $dirs) {
-                    if (Test-Excluded -FullPath $d.FullName -Patterns $Patterns) { continue }
-                    $inclusiveChildren += Walk -Root $d.FullName -Depth $nextDepth -MaxDepth $MaxDepth -Summarize:$Summarize -Patterns $Patterns
-                    Write-InPlace ("Scanning: {0}" -f $Root)
-                }
+            # stop descending, but still print INCLUSIVE
+            if ($MaxDepth -ge 0 -and $Depth -ge $MaxDepth) {
+                $inclusive = Get-DirSize -Path $Root -ExcludePatterns $Patterns
+                Write-InPlace ("{0,8}  {1}" -f (Format-Size -Bytes $inclusive -HumanReadable:$HumanReadable), $Root)
+                Write-Host ""
+                return $inclusive
             }
 
-            # overwrite progress with result for this dir
-            $line = ("{0,8}  {1}" -f (Format-Size -Bytes $exclusive -HumanReadable:$HumanReadable), $Root)
-            Write-InPlace $line
+            # descend and sum children → INCLUSIVE
+            $nextDepth = $Depth + 1
+            $inclusiveChildren = 0L
+            try {
+                $dirs = Get-ChildItem -LiteralPath $Root -Directory -Force -ErrorAction Stop | Remove-NonNormalItem
+            }
+            catch { $dirs = @() }
+
+            foreach ($d in $dirs) {
+                if (Test-Excluded -FullPath $d.FullName -Patterns $Patterns) { continue }
+                $inclusiveChildren += Walk -Root $d.FullName -Depth $nextDepth -MaxDepth $MaxDepth -Summarize:$Summarize -Patterns $Patterns
+                Write-InPlace ("Scanning: {0}" -f $Root)
+            }
+
+            $exclusive = Get-LevelFileBytes -Path $Root -ExcludePatterns $Patterns
+            $inclusive = $exclusive + $inclusiveChildren
+
+            Write-InPlace ("{0,8}  {1}" -f (Format-Size -Bytes $inclusive -HumanReadable:$HumanReadable), $Root)
             Write-Host ""
-            return ($exclusive + $inclusiveChildren)
+            return $inclusive
         }
     }
     process {
@@ -250,7 +245,7 @@ function Get-DiskUsage {
             if ($MaxDepth -eq 0) {
                 $Summarize = $true
             }
-            $drop = Walk -Root $resolved -Depth 0 -MaxDepth $MaxDepth -Summarize:$Summarize -Patterns $patterns
+            [void](Walk -Root $resolved -Depth 0 -MaxDepth $MaxDepth -Summarize:$Summarize -Patterns $patterns)
         }
     }
 }
