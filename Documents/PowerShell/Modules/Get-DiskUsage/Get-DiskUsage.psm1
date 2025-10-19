@@ -62,6 +62,35 @@ function Test-Excluded {
     return $false
 }
 
+function Remove-NonNormalItem {
+    <#
+    .SYNOPSIS
+        Filters out items with problematic attributes (cloud/offline/sync).
+    .DESCRIPTION
+        Accepts pipeline input or a collection from Get-ChildItem.
+        Removes objects with ReparsePoint, Offline, RecallOnOpen, or RecallOnDataAccess attributes.
+    .EXAMPLE
+        Get-ChildItem -Recurse | Remove-NonNormalItem
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(ValueFromPipeline = $true, Mandatory = $true)]
+        [Object]$InputObject
+    )
+    begin {
+        $mask = [IO.FileAttributes]::ReparsePoint `
+            -bor [IO.FileAttributes]::Offline `
+            -bor [IO.FileAttributes]::RecallOnOpen `
+            -bor [IO.FileAttributes]::RecallOnDataAccess
+    }
+    process {
+        if ($null -ne $InputObject -and ($InputObject.Attributes -band $mask) -eq 0) {
+            # stream out immediately; no accumulation
+            $InputObject
+        }
+    }
+}
+
 function Get-DirSize {
     param(
         [string]$Path,
@@ -70,7 +99,7 @@ function Get-DirSize {
     $total = 0L
     try {
         # Files directly under this directory
-        $files = Get-ChildItem -LiteralPath $Path -File -Force -ErrorAction Stop
+        $files = Get-ChildItem -LiteralPath $Path -File -Force -ErrorAction Stop | Remove-NonNormalItem
     }
     catch {
         return 0L
@@ -83,7 +112,7 @@ function Get-DirSize {
     }
     # Recurse into subdirectories unless excluded
     try {
-        $dirs = Get-ChildItem -LiteralPath $Path -Directory -Force -ErrorAction Stop
+        $dirs = Get-ChildItem -LiteralPath $Path -Directory -Force -ErrorAction Stop | Remove-NonNormalItem
     }
     catch {
         $dirs = @()
@@ -124,7 +153,11 @@ function Get-DiskUsage {
         $emit = {
             param($sizeBytes, $p)
             $sizeStr = Format-Size -Bytes $sizeBytes -HumanReadable:$HumanReadable
-            $rel = Resolve-Path -LiteralPath $p -Relative
+            $rel = $p
+            try {
+                $rel = Resolve-Path -LiteralPath $p -Relative -ErrorAction Stop
+            }
+            catch {}
             "{0,8}  {1}" -f $sizeStr, $rel
         }
         function Walk {
@@ -135,50 +168,41 @@ function Get-DiskUsage {
                 [bool]$Summarize,
                 [string[]]$Patterns
             )
-            if (Test-Excluded -FullPath $Root -Patterns $Patterns) {
-                return
-            }
-            $isFile = Test-Path -LiteralPath $Root -PathType Leaf
-            $isDir = Test-Path -LiteralPath $Root -PathType Container
-            if (-not $isFile -and -not $isDir) {
+
+            if (Test-Excluded -FullPath $Root -Patterns $Patterns) { return }
+
+            if (-not (Test-Path -LiteralPath $Root)) {
                 Write-Error "Path not found: $Root"
                 return
             }
 
-            if ($isFile) {
-                try {
-                    $file = Get-Item -LiteralPath $Root -Force -ErrorAction Stop
-                    & $emit $file.Length $file.FullName
-                }
-                catch {
-                    Write-Error $_
-                }
+            # Always fetch and filter the root item first
+            try {
+                $item = Get-Item -LiteralPath $Root -Force -ErrorAction Stop | Remove-NonNormalItem
+                if (-not $item) { return }  # filtered out due to attributes
+            }
+            catch { return }
+
+            if (-not $item.PSIsContainer) {
+                try { & $emit $item.Length $item.FullName } catch { Write-Error $_ }
                 return
             }
 
+            # Directory branch
             $size = Get-DirSize -Path $Root -ExcludePatterns $Patterns
-            if ($Summarize -or $MaxDepth -eq 0) {
-                & $emit $size $Root
-                return
-            }
 
             & $emit $size $Root
-            if ($MaxDepth -ge 0 -and $Depth -ge $MaxDepth) {
-                return
-            }
+            if ($Summarize -or $MaxDepth -eq 0) { return }
+            if ($MaxDepth -ge 0 -and $Depth -ge $MaxDepth) { return }
 
             $nextDepth = $Depth + 1
             try {
-                # Child dirs, skip reparse points
-                $dirs = Get-ChildItem -LiteralPath $Root -Directory -Force -Attributes !ReparsePoint -ErrorAction Stop
+                $dirs = Get-ChildItem -LiteralPath $Root -Directory -Force -ErrorAction Stop | Remove-NonNormalItem
             }
-            catch {
-                $dirs = @()
-            }
+            catch { $dirs = @() }
+
             foreach ($d in $dirs) {
-                if (Test-Excluded -FullPath $d.FullName -Patterns $Patterns) {
-                    continue
-                }
+                if (Test-Excluded -FullPath $d.FullName -Patterns $Patterns) { continue }
                 Walk -Root $d.FullName -Depth $nextDepth -MaxDepth $MaxDepth -Summarize:$Summarize -Patterns $Patterns
             }
         }
