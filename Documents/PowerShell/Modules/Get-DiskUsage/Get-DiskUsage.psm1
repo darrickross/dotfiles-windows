@@ -38,7 +38,9 @@ function Resolve-ExcludePatterns {
         $fileLines = Get-Content -LiteralPath $ExcludeFrom -ErrorAction Stop
         $patterns += ($fileLines | Where-Object { $_ -and $_.Trim() -ne '' })
     }
-    if ($Exclude) { $patterns += $Exclude }
+    if ($Exclude) {
+        $patterns += $Exclude
+    }
     return $patterns
 }
 
@@ -47,11 +49,15 @@ function Test-Excluded {
         [string]$FullPath,
         [string[]]$Patterns
     )
-    if (-not $Patterns -or $Patterns.Count -eq 0) { return $false }
+    if (-not $Patterns -or $Patterns.Count -eq 0) {
+        return $false
+    }
     $leaf = Split-Path -Leaf -Path $FullPath
     foreach ($p in $Patterns) {
         # Treat patterns as PowerShell wildcards, check leaf and full path
-        if ($leaf -like $p -or $FullPath -like $p) { return $true }
+        if ($leaf -like $p -or $FullPath -like $p) {
+            return $true
+        }
     }
     return $false
 }
@@ -82,7 +88,9 @@ function Get-DirSize {
         $dirs = @()
     }
     foreach ($d in $dirs) {
-        if (Test-Excluded -FullPath $d.FullName -Patterns $ExcludePatterns) { continue }
+        if (Test-Excluded -FullPath $d.FullName -Patterns $ExcludePatterns) {
+            continue
+        }
         $total += Get-DirSize -Path $d.FullName -ExcludePatterns $ExcludePatterns
     }
     return $total
@@ -125,27 +133,48 @@ function Get-DiskUsage {
                 [bool]$Summarize,
                 [string[]]$Patterns
             )
-            if (Test-Excluded -FullPath $Root -Patterns $Patterns) { return }
+            if (Test-Excluded -FullPath $Root -Patterns $Patterns) {
+                return
+            }
             $isFile = Test-Path -LiteralPath $Root -PathType Leaf
             $isDir = Test-Path -LiteralPath $Root -PathType Container
-            if (-not $isFile -and -not $isDir) { Write-Error "Path not found: $Root"; return }
+            if (-not $isFile -and -not $isDir) {
+                Write-Error "Path not found: $Root";
+                return
+            }
 
             if ($isFile) {
-                try { $file = Get-Item -LiteralPath $Root -Force -ErrorAction Stop; & $emit $file.Length $file.FullName }
-                catch { Write-Error $_ }
+                try {
+                    $file = Get-Item -LiteralPath $Root -Force -ErrorAction Stop; & $emit $file.Length $file.FullName
+                }
+                catch {
+                    Write-Error $_
+                }
                 return
             }
 
             $size = Get-DirSize -Path $Root -ExcludePatterns $Patterns
-            if ($Summarize -or $MaxDepth -eq 0) { & $emit $size $Root; return }
+            if ($Summarize -or $MaxDepth -eq 0) {
+                & $emit $size $Root;
+                return
+            }
 
             & $emit $size $Root
-            if ($MaxDepth -ge 0 -and $Depth -ge $MaxDepth) { return }
+            if ($MaxDepth -ge 0 -and $Depth -ge $MaxDepth) {
+                return
+            }
 
             $nextDepth = $Depth + 1
-            try { $dirs = Get-ChildItem -LiteralPath $Root -Directory -Force -ErrorAction Stop } catch { $dirs = @() }
+            try {
+                $dirs = Get-ChildItem -LiteralPath $Root -Directory -Force -Attributes !ReparsePoint -ErrorAction Stop
+            }
+            catch {
+                $dirs = @()
+            }
             foreach ($d in $dirs) {
-                if (Test-Excluded -FullPath $d.FullName -Patterns $Patterns) { continue }
+                if (Test-Excluded -FullPath $d.FullName -Patterns $Patterns) {
+                    continue
+                }
                 Walk -Root $d.FullName -Depth $nextDepth -MaxDepth $MaxDepth -Summarize:$Summarize -Patterns $Patterns
             }
         }
@@ -153,8 +182,14 @@ function Get-DiskUsage {
     process {
         foreach ($p in $Path) {
             $resolved = $p
-            try { $resolved = (Resolve-Path -LiteralPath $p -ErrorAction Stop).ProviderPath } catch { }
-            if ($MaxDepth -eq 0) { $Summarize = $true }
+            try {
+                $resolved = (Resolve-Path -LiteralPath $p -ErrorAction Stop).ProviderPath
+            }
+            catch {
+            }
+            if ($MaxDepth -eq 0) {
+                $Summarize = $true
+            }
             Walk -Root $resolved -Depth 0 -MaxDepth $MaxDepth -Summarize:$Summarize -Patterns $patterns
         }
     }
