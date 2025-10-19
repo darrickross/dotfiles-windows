@@ -195,11 +195,11 @@ function Get-DiskUsage {
             }
             catch { return 0L }
 
-            Write-InPlace ("Scanning: {0}" -f $Root)
+            Write-InPlace ("     Scanning:  {0}" -f $Root)
 
             if (-not $item.PSIsContainer) {
                 $size = $item.Length
-                Write-InPlace ("{0,8}  {1}" -f (Format-Size -Bytes $size -HumanReadable:$HumanReadable), $item.FullName)
+                Write-InPlace ("{0,14}  {1}" -f (Format-Size -Bytes $size -HumanReadable:$HumanReadable), $item.FullName)
                 Write-Host ""
                 return $size
             }
@@ -207,7 +207,7 @@ function Get-DiskUsage {
             # stop descending, but still print INCLUSIVE
             if ($MaxDepth -ge 0 -and $Depth -ge $MaxDepth) {
                 $inclusive = Get-DirSize -Path $Root -ExcludePatterns $Patterns
-                Write-InPlace ("{0,8}  {1}" -f (Format-Size -Bytes $inclusive -HumanReadable:$HumanReadable), $Root)
+                Write-InPlace ("{0,14}  {1}" -f (Format-Size -Bytes $inclusive -HumanReadable:$HumanReadable), $Root)
                 Write-Host ""
                 return $inclusive
             }
@@ -223,13 +223,13 @@ function Get-DiskUsage {
             foreach ($d in $dirs) {
                 if (Test-Excluded -FullPath $d.FullName -Patterns $Patterns) { continue }
                 $inclusiveChildren += Walk -Root $d.FullName -Depth $nextDepth -MaxDepth $MaxDepth -Summarize:$Summarize -Patterns $Patterns
-                Write-InPlace ("Scanning: {0}" -f $Root)
+                Write-InPlace ("     Scanning:  {0}" -f $Root)
             }
 
             $exclusive = Get-LevelFileBytes -Path $Root -ExcludePatterns $Patterns
             $inclusive = $exclusive + $inclusiveChildren
 
-            Write-InPlace ("{0,8}  {1}" -f (Format-Size -Bytes $inclusive -HumanReadable:$HumanReadable), $Root)
+            Write-InPlace ("{0,14}  {1}" -f (Format-Size -Bytes $inclusive -HumanReadable:$HumanReadable), $Root)
             Write-Host ""
             return $inclusive
         }
