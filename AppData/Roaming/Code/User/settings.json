@@ -24,7 +24,13 @@
     "ssh_config": true,
     "terraform": true
   },
-  "cSpell.userWords": ["Darrick", "darrickross", "itsjustmech", "Yubikey"],
+  "cSpell.userWords": [
+    "Bitwarden",
+    "Darrick",
+    "darrickross",
+    "itsjustmech",
+    "Yubikey"
+  ],
   "diffEditor.codeLens": true,
   "diffEditor.ignoreTrimWhitespace": false,
   "editor.fontFamily": "'0xProto Nerd Font Mono', 'Cascadia Mono', 'FontAwesome', monospace",
@@ -78,5 +84,12 @@
   "trailing-spaces.trimOnSave": true,
   "update.showReleaseNotes": false,
   "window.zoomLevel": -1,
-  "workbench.startupEditor": "none"
+  "workbench.startupEditor": "none",
+  "docker.extension.enableComposeLanguageServer": false,
+  "gitlens.launchpad.indicator.enabled": false,
+  "claudeCode.preferredLocation": "panel",
+  "remote.autoForwardPortsSource": "hybrid",
+  "[markdown]": {
+    "diffEditor.ignoreTrimWhitespace": false
+  }
 }
