@@ -1,21 +1,21 @@
 {
-    "files.associations": {
-        "config": "ssh_config",
-        "*.ssh_config": "ssh_config",
-        ".dotfile-ignore": "ignore"
-    },
-    "cSpell.words": [
-        "autofetch",
-        "blueripper",
-        "Cascadia",
-        "gpmc",
-        "Meslo",
-        "openpgp",
-        "pscustomobject",
-        "pwsh",
-        "Scancode",
-        "scrollback",
-        "signingkey",
-        "winget"
-    ],
+  "files.associations": {
+    "config": "ssh_config",
+    "*.ssh_config": "ssh_config",
+    ".dotfile-ignore": "ignore"
+  },
+  "cSpell.words": [
+    "autofetch",
+    "blueripper",
+    "Cascadia",
+    "gpmc",
+    "Meslo",
+    "openpgp",
+    "pscustomobject",
+    "pwsh",
+    "Scancode",
+    "scrollback",
+    "signingkey",
+    "winget"
+  ]
 }
