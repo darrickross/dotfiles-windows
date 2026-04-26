@@ -28,7 +28,11 @@
     "Bitwarden",
     "Darrick",
     "darrickross",
+    "dockercompose",
+    "esbenp",
     "itsjustmech",
+    "nixfmt",
+    "pytest",
     "Yubikey"
   ],
   "diffEditor.codeLens": true,
