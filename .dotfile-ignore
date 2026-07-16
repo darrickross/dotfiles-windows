@@ -2,3 +2,7 @@
 README.md
 System_Changes
 Sync-PSModules.ps1
+
+# gh CLI stores host/account state here; on machines without keyring
+# support it can contain a raw OAuth token, so it's never tracked.
+*hosts.yml

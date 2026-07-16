@@ -20,6 +20,20 @@ After installation, restart your terminal session.
 
 Ensure Git is installed to clone the repository.
 
+### GitHub CLI
+
+Install the [GitHub CLI](https://cli.github.com/) via winget:
+
+```ps
+winget install --id GitHub.cli
+```
+
+The GitHub CLI preferences (`AppData\Roaming\GitHub CLI\config.yml`) are synced through this repo, but authentication itself is machine-specific and isn't stored here. After deploying, run:
+
+```ps
+gh auth login
+```
+
 ## Applying Dotfiles to a New System
 
 Follow these steps to deploy your dotfiles:
@@ -51,6 +65,13 @@ Follow these steps to deploy your dotfiles:
 
    ```ps
    pwsh -ExecutionPolicy Bypass -File .\Deploy-Dotfiles.ps1 -DestinationFolder $HOME -DotfilesFolder $DotFileDir
+   ```
+
+5. **Authenticate the GitHub CLI:**
+   Log `gh` into your GitHub account (this can't be synced via dotfiles since it's machine-specific):
+
+   ```ps
+   gh auth login
    ```
 
 ## Why is an Admin Prompt Required?
