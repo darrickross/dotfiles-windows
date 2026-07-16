@@ -26,13 +26,18 @@
   },
   "cSpell.userWords": [
     "Bitwarden",
+    "cbws",
+    "ciphertext",
     "Darrick",
     "darrickross",
     "dockercompose",
     "esbenp",
+    "herestring",
+    "herestrings",
     "itsjustmech",
     "nixfmt",
     "pytest",
+    "tmpfiles",
     "Yubikey"
   ],
   "diffEditor.codeLens": true,
