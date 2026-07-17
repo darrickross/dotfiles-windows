@@ -12,15 +12,15 @@
     "editor.tabSize": 2
   },
   "[dockercompose]": {
-    "editor.insertSpaces": true,
-    "editor.tabSize": 2,
     "editor.autoIndent": "advanced",
+    "editor.defaultFormatter": "redhat.vscode-yaml",
+    "editor.insertSpaces": true,
     "editor.quickSuggestions": {
-      "other": true,
       "comments": false,
+      "other": true,
       "strings": true
     },
-    "editor.defaultFormatter": "redhat.vscode-yaml"
+    "editor.tabSize": 2
   },
   "[github-actions-workflow]": {
     "editor.defaultFormatter": "redhat.vscode-yaml"
@@ -147,6 +147,8 @@
     "xrdp",
     "Yubikey"
   ],
+  "chat.disableAIFeatures": true,
+  "chat.titleBar.openInAgentsWindow.enabled": false,
   "claudeCode.preferredLocation": "panel",
   "diffEditor.codeLens": true,
   "diffEditor.ignoreTrimWhitespace": false,
@@ -195,10 +197,10 @@
   "python.analysis.inlayHints.pytestParameters": true,
   "python.analysis.inlayHints.variableTypes": true,
   "python.analysis.typeEvaluation.deprecateTypingAliases": true,
-  "remote.autoForwardPortsSource": "hybrid",
   "remote.SSH.remotePlatform": {
     "blueripper": "linux"
   },
+  "remote.autoForwardPortsSource": "hybrid",
   "security.workspace.trust.untrustedFiles": "open",
   "terminal.integrated.fontFamily": "",
   "terminal.integrated.fontLigatures.enabled": true,
@@ -209,6 +211,8 @@
   "terminal.integrated.stickyScroll.enabled": true,
   "trailing-spaces.trimOnSave": true,
   "update.showReleaseNotes": false,
+  "window.commandCenter": false,
   "window.zoomLevel": -1,
+  "workbench.browser.showInTitleBar": false,
   "workbench.startupEditor": "none"
 }
