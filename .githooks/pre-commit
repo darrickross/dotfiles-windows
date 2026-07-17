@@ -1,0 +1,16 @@
+#!/bin/sh
+# Sorts tracked settings files by key before commit.
+# Installed via: git config core.hooksPath .githooks
+
+repo_root=$(git rev-parse --show-toplevel)
+target="AppData/Roaming/Code/User/settings.json"
+
+staged=$(git diff --cached --name-only --diff-filter=ACM -- "$target")
+if [ -z "$staged" ]; then
+    exit 0
+fi
+
+pwsh -NoLogo -NoProfile -File "$repo_root/Sort-JsonKeys.ps1" -Path "$repo_root/$target" || exit 1
+git add "$target"
+
+exit 0
