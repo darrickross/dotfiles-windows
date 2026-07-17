@@ -16,3 +16,15 @@
 	gpgSign = true
 [core]
 	autocrlf = true
+# Primary auth for github.com/gist.github.com: HTTPS via gh CLI's cached
+# OAuth token, so push/pull don't need a YubiKey touch each time (see `gh auth
+# status`). SSH (.ssh/configs/github.ssh_config) is kept configured as a
+# fallback for anything that still uses git@github.com SSH remotes.
+# The empty `helper =` line resets the helper list inherited from the system
+# config (credential.helper = manager) so only gh's helper runs for these hosts.
+[credential "https://github.com"]
+	helper =
+	helper = !'C:\\Program Files\\GitHub CLI\\gh.exe' auth git-credential
+[credential "https://gist.github.com"]
+	helper =
+	helper = !'C:\\Program Files\\GitHub CLI\\gh.exe' auth git-credential
