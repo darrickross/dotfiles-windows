@@ -1,0 +1,5 @@
+Windows Registry Editor Version 5.00
+
+; 2026 JUL 17 - LG Monitors auto installing McAfee junk
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Device Metadata]
+"PreventDeviceMetadataFromNetwork"=dword:00000001
